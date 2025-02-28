@@ -42,6 +42,11 @@ public class RegistroVehiculoController {
 		return "registroVehiculos/show";
 	}
 
+	@GetMapping("/create")
+	public String create() {
+		return "registroVehiculos/create";
+	}
+
 	@PostMapping("/save")
 	public String save(RegistroVehiculo registroVehiculo, @RequestParam("img") MultipartFile file) throws IOException {
 		LOGGER.info("Este es el objeto del producto a guardar en la DB {}", registroVehiculo);
@@ -62,7 +67,7 @@ public class RegistroVehiculoController {
 		RegistroVehiculo p = new RegistroVehiculo();
 		Optional<RegistroVehiculo> op = registroVehiculoService.get(id);
 		p = op.get();
-		LOGGER.info("Busqueda de vehiculo por id {}", p);
+		LOGGER.info("Busqueda de producto por id {}", p);
 		model.addAttribute("vehiculo", p);
 		return "registroVehiculos/edit";
 	}
