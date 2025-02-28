@@ -99,6 +99,16 @@ public class Orden {
 	}
 
 
+	public List<DetalleOrden> getDetalle() {
+		return detalle;
+	}
+
+
+	public void setDetalle(List<DetalleOrden> detalle) {
+		this.detalle = detalle;
+	}
+
+
 	public void setUsuario(Usuario usuario) {
 		this.usuario = usuario;
 	}

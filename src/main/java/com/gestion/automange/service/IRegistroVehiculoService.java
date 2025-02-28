@@ -19,4 +19,6 @@ public interface IRegistroVehiculoService {
 
 	public void setImagen(String nombreImagen);
 
+	Optional<RegistroVehiculo> findById(Integer id);
+
 }

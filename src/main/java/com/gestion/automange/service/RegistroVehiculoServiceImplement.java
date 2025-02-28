@@ -6,6 +6,7 @@ import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.gestion.automange.model.Orden;
 import com.gestion.automange.model.RegistroVehiculo;
 import com.gestion.automange.repository.IRegistroVehiculoRepository;
 
@@ -51,4 +52,9 @@ public class RegistroVehiculoServiceImplement implements IRegistroVehiculoServic
 
 	}
 
+	@Override
+	public Optional<RegistroVehiculo> findById(Integer id) {
+		// TODO Auto-generated method stub
+		return registroVehiculoRepository.findById(id);
+	}
 }

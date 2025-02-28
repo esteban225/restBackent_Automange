@@ -20,5 +20,6 @@ public interface IUsuarioService {
 	Optional<Usuario> findByEmail(String email);
 
 	List<Usuario> findAll();
+	
 
 }

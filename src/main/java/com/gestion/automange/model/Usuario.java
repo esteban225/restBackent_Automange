@@ -55,6 +55,38 @@ public class Usuario {
 		this.password = password;
 	}
 
+	public List<Productos> getProductos() {
+		return productos;
+	}
+
+	public void setProductos(List<Productos> productos) {
+		this.productos = productos;
+	}
+
+	public List<RegistroVehiculo> getRegistroVehiculo() {
+		return registroVehiculo;
+	}
+
+	public void setRegistroVehiculo(List<RegistroVehiculo> registroVehiculo) {
+		this.registroVehiculo = registroVehiculo;
+	}
+
+	public List<Orden> getOrdenes() {
+		return ordenes;
+	}
+
+	public void setOrdenes(List<Orden> ordenes) {
+		this.ordenes = ordenes;
+	}
+
+	public List<Citas> getCitas() {
+		return citas;
+	}
+
+	public void setCitas(List<Citas> citas) {
+		this.citas = citas;
+	}
+
 	public Integer getId() {
 		return id;
 	}
