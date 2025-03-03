@@ -15,7 +15,7 @@ public interface IProductosService {
 
 	public void update(Productos producto);
 
-	public void delete(Integer id);
+	public void delet(Integer id);
 
 	public List<Productos> findAll();
 }

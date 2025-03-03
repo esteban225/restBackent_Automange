@@ -8,13 +8,16 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import com.gestion.automange.service.IDetalleOrdenService;
 import com.gestion.automange.service.IOrdenService;
@@ -25,8 +28,9 @@ import com.gestion.automange.model.Orden;
 import com.gestion.automange.model.Productos;
 import com.gestion.automange.model.Usuario;
 
-@Controller
-@RequestMapping("/")
+@RestController
+@RequestMapping("/api/usuarios")
+@CrossOrigin(origins = "http://localhost:4200/")
 public class usuarioController {
 
 	// instancia del LOGGER para ver datos por consola
@@ -51,49 +55,17 @@ public class usuarioController {
 	// objeto que almacena los datos de la orden
 	Orden orden = new Orden();
 
-	@GetMapping("")
-	public String home() {
-		return "usuario/home";
-	}
-
-	@GetMapping("/homeAdmin")
-	public String homeAdmin() {
-		return "administrador/home";
-	}
-
-	@GetMapping("/mante_rapi")
-	public String serviRapi() {
-		return "usuario/mante_rapi";
-	}
-
-	@GetMapping("/mante_preve")
-	public String serviPreve() {
-		return "usuario/mante_preve";
-	}
-
-	@GetMapping("/mante_gener")
-	public String serviGener() {
-		return "usuario/mante_gener";
-	}
-
-	@GetMapping("/tienda")
-	public String tiendaEcommerce(Model model) {
-		model.addAttribute("productos", productosService.findAll());
-		return "tiendaEcommerce/home";
+	@GetMapping
+	public ResponseEntity<?> tiendaEcommerce() {
+		return ResponseEntity.ok(productosService.findAll());
 	}
 
 	// metodo que carga el producto del usuario con el id
-	@GetMapping("productoHome/{id}")
-	public String productoHome(@PathVariable Integer id, Model model) {
+	@GetMapping("/{id}")
+	public ResponseEntity<?> productoHome(@PathVariable Integer id) {
 		LOGGER.info("ID producto enviado como parametro {}", id);
-		// variable de clase producto
-		Productos p = new Productos();
-		// objeto de tipo optional
-		Optional<Productos> op = productosService.get(id);
-		p = op.get();
-		// enviar a la vista con el model los detalles del producto con el id
-		model.addAttribute("producto", p);
-		return "tiendaEcommerce/productoHome";
+		Optional<Productos> producto = productosService.get(id);
+		return producto.map(ResponseEntity::ok).orElseGet(()-> ResponseEntity.notFound().build());
 	}
 
 	// metodo para enviar del boton del producto home al carrito

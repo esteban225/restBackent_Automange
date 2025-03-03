@@ -15,6 +15,16 @@ import jakarta.persistence.Table;
 @Entity
 @Table(name = " ordenes")
 public class Orden {
+	public List<DetalleOrden> getDetalle() {
+		return detalle;
+	}
+
+
+	public void setDetalle(List<DetalleOrden> detalle) {
+		this.detalle = detalle;
+	}
+
+
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Integer id;

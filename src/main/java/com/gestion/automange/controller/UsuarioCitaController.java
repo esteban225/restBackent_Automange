@@ -1,51 +1,52 @@
 package com.gestion.automange.controller;
 
+import java.util.List;
+
 import org.slf4j.Logger;
+
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import com.gestion.automange.service.ICitasService;
 import com.gestion.automange.model.Citas;
 import com.gestion.automange.model.Usuario;
-@Controller
-@RequestMapping("/cita")
+
+@RestController
+@RequestMapping("/api/cita")
 public class UsuarioCitaController {
 
 	private final Logger LOGGER = (Logger) LoggerFactory.getLogger(UsuarioCitaController.class);
-	
+
 	@Autowired
 	private ICitasService citasService;
-	
-	@GetMapping("")
-	public String homeCitas() {
-		return"usuario/usuario_cita";
-	}
-	
+
 	@GetMapping("/citaAdmin")
-	public String citasAdmin(Model model) {
-		model.addAttribute("citas", citasService.findAll());
-		return "citasAdmin/show";
+	public ResponseEntity<?> citasAdmin() {
+		List<Citas> Citas = citasService.findAll();
+		return ResponseEntity.ok(Citas);
 	}
-	
+
 	@PostMapping("/save")
-	public String save(Citas citas) {
-		LOGGER.info("informacion cita", citas);
-		Usuario u = new Usuario(1, null, null, null, null, null, null, null);
-		citas.setUsuario(u);
-		return"redirect:/cita";
+	public ResponseEntity<?> save(@RequestBody Citas citas) {
+		LOGGER.info("Información de la cita: {}", citas);
+
+		// Asignar un usuario por defecto (debería obtenerse de la base de datos en un
+		// caso real)
+		Usuario usuario = new Usuario(1, null, null, null, null, null, null, null);
+		citas.setUsuario(usuario);
+
+		// Guardar la cita (se asume que hay un servicio para manejar esto)
+		Citas nuevaCita = citasService.save(citas); // Debes tener un método save en tu servicio
+
+		return ResponseEntity.ok(nuevaCita);
 	}
-	
+
 }
-
-
-
-
-
-
-
-

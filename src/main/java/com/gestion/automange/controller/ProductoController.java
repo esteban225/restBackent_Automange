@@ -61,7 +61,7 @@ public class ProductoController {
 		LOGGER.info("Guardando producto en la DB: {}", productos);
 
 		// Se crea un usuario por defecto con ID 1 y se asigna al producto
-		Usuario u = new Usuario(1, "", "", "", "", "", "", "");
+		Usuario u = new Usuario(1, productosJson, productosJson, productosJson, productosJson, productosJson, productosJson, productosJson);
 		productos.setUsuario(u);
 
 		// Si el producto es nuevo (no tiene ID), se guarda la imagen
@@ -136,7 +136,7 @@ public class ProductoController {
 			if (!p.getImagen().equals("default.jpg")) {
 				upload.deleteImage(p.getImagen());
 			}
-			productoService.delete(id);
+			productoService.delet(id);
 			return ResponseEntity.noContent().build();
 		} else {
 			return ResponseEntity.notFound().build();
