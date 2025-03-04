@@ -36,11 +36,7 @@ public class ProductosServiceImplement implements IProductosService {
 		
 	}
 
-	@Override
-	public void delete(Integer id) {
-		// TODO Auto-generated method stub
-		productoRepository.deleteById(id);
-	}
+
 
 	@Override
 	public List<Productos> findAll() {
@@ -48,4 +44,14 @@ public class ProductosServiceImplement implements IProductosService {
 		return productoRepository.findAll();
 	}
 
+
+	@Override
+	public void delete(Integer id) {
+		// TODO Auto-generated method stub
+		
+	}
+
 }
+
+
+//hola
