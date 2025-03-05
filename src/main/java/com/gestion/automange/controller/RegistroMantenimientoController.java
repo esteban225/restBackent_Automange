@@ -33,7 +33,7 @@ import com.gestion.automange.model.RegistroVehiculo;
 import com.gestion.automange.model.Usuario;
 
 @RestController
-@RequestMapping("/registroMante")
+@RequestMapping("/api/registroMante")
 @CrossOrigin(origins = "http://localhost:4200/")
 public class RegistroMantenimientoController {
 

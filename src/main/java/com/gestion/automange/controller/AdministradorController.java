@@ -7,23 +7,24 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.gestion.automange.model.Orden;
+import com.gestion.automange.model.Productos;
+import com.gestion.automange.model.Usuario;
 import com.gestion.automange.service.IDetalleOrdenService;
 import com.gestion.automange.service.IOrdenService;
 import com.gestion.automange.service.IProductosService;
 import com.gestion.automange.service.IUsuarioService;
-import com.gestion.automange.model.Orden;
-import com.gestion.automange.model.Productos;
-import com.gestion.automange.model.Usuario;
 
 @RestController
 @RequestMapping("/api/administrador")
+@CrossOrigin(origins = "http://localhost:4200/")
+
 public class AdministradorController {
 
 	private final Logger LOGGER = (Logger) LoggerFactory.getLogger(AdministradorController.class);
@@ -62,7 +63,7 @@ public class AdministradorController {
 	}
 
 	// Lista de Detalles de orden
-	@GetMapping("/detalleOrden")
+	@GetMapping("/detalleOrden/{id}")
 	public ResponseEntity<?> homeDetalleOrden(@PathVariable Integer id) {
 		LOGGER.info("id de la orden: {}");
 		Optional<Orden> oreden = ordenService.findById(id);

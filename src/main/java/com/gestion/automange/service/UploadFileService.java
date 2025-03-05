@@ -12,7 +12,8 @@ import org.springframework.web.multipart.MultipartFile;
 @Service
 public class UploadFileService {
 
-	private String folder = "images//";
+	// ruta abspluta para windows
+	private final String storagePath = "file:C:/images/";
 
 	// metodo para sivir la imagen del producto
 	public String saveImages(MultipartFile file, String nombre) throws IOException {
@@ -21,7 +22,7 @@ public class UploadFileService {
 			byte[] bytes = file.getBytes();
 			// variable de tipo path que redirige al directorio
 			// se importa el path de .ino.file
-			Path path = Paths.get(folder + nombre + "_" + file.getOriginalFilename());
+			Path path = Paths.get(storagePath + nombre + "_" + file.getOriginalFilename());
 			Files.write(path, bytes);
 			return nombre + "_" + file.getOriginalFilename();
 		}
@@ -30,7 +31,8 @@ public class UploadFileService {
 
 	// metodo para la eliminacion de la img del producto
 	public void deleteImage(String nombre) {
-		String ruta = "//images";
+		String ruta = "C:/images/";
+		// String ruta = "images/";
 		File file = new File(ruta + nombre);
 		file.delete();
 	}
