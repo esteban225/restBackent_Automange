@@ -23,8 +23,7 @@ public class RegistroMante {
 	@ManyToOne
 	private RegistroVehiculo registroVehiculo;
 
-	@ManyToOne
-	public Citas citas;
+
 
 	public RegistroMante() {
 		super();
@@ -32,7 +31,7 @@ public class RegistroMante {
 	}
 
 	public RegistroMante(Integer id, String fechaMante, String nombre, String caracteristrica, String imagen,
-			Integer precio, RegistroVehiculo registroVehiculo, Citas citas) {
+			Integer precio, RegistroVehiculo registroVehiculo) {
 		super();
 		this.id = id;
 		this.fechaMante = fechaMante;
@@ -41,7 +40,7 @@ public class RegistroMante {
 		this.imagen = imagen;
 		this.precio = precio;
 		this.registroVehiculo = registroVehiculo;
-		this.citas = citas;
+	
 	}
 
 	public Integer getId() {
@@ -100,13 +99,7 @@ public class RegistroMante {
 		this.registroVehiculo = registroVehiculo;
 	}
 
-	public Citas getCitas() {
-		return citas;
-	}
 
-	public void setCitas(Citas citas) {
-		this.citas = citas;
-	}
 
 	@Override
 	public String toString() {

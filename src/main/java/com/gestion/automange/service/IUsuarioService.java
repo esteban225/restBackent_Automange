@@ -3,6 +3,9 @@ package com.gestion.automange.service;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.security.core.userdetails.UserDetails;
+
+import com.gestion.automange.model.Productos;
 import com.gestion.automange.model.Usuario;
 
 public interface IUsuarioService {

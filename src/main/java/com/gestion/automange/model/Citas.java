@@ -22,6 +22,9 @@ public class Citas {
 
 	@ManyToOne
 	private Usuario usuario;
+	
+	@ManyToOne
+	public RegistroVehiculo registroVehiculo;
 
 
 	public Citas() {
