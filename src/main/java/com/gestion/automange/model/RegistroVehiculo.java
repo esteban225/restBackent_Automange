@@ -31,6 +31,8 @@ public class RegistroVehiculo {
 	@OneToMany(mappedBy = "registroVehiculo")
 	private List<RegistroMante> registroMante;
 
+	@OneToMany(mappedBy = "registroVehiculo")
+	private List<Citas> citas;
 	public RegistroVehiculo() {
 
 	}

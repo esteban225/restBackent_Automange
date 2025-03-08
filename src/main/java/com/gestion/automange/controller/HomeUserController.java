@@ -4,40 +4,40 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
 
-import com.gestion.automange.service.IDetalleOrdenService;
-import com.gestion.automange.service.IOrdenService;
-import com.gestion.automange.service.IProductosService;
-import com.gestion.automange.service.IUsuarioService;
 import com.gestion.automange.model.DetalleOrden;
 import com.gestion.automange.model.Orden;
 import com.gestion.automange.model.Productos;
 import com.gestion.automange.model.Usuario;
+import com.gestion.automange.service.IDetalleOrdenService;
+import com.gestion.automange.service.IOrdenService;
+import com.gestion.automange.service.IProductosService;
+import com.gestion.automange.service.IUsuarioService;
 
-@RestController
-@RequestMapping("/api/usuarios")
-@CrossOrigin(origins = "http://localhost:4200/")
-public class usuarioController {
+import jakarta.servlet.http.HttpSession;
+
+@Controller
+@RequestMapping("/") // la raiz del proyecto
+public class HomeUserController {
 
 	// instancia del LOGGER para ver datos por consola
-	private final Logger LOGGER = (Logger) LoggerFactory.getLogger(usuarioController.class);
+	private final Logger LOGGER = (Logger) LoggerFactory.getLogger(HomeUserController.class);
 
+	// instancia de objeto - servicio
 	@Autowired
-	private IProductosService productosService;
+	private IProductosService productoService;
 
 	@Autowired
 	private IUsuarioService usuarioService;
@@ -55,29 +55,40 @@ public class usuarioController {
 	// objeto que almacena los datos de la orden
 	Orden orden = new Orden();
 
-	@GetMapping
-	public ResponseEntity<?> tiendaEcommerce() {
-		return ResponseEntity.ok(productosService.findAll());
+	// metodo que mapea la vista de usuario en la raiz del proyecto
+	@GetMapping("")
+	public String home(Model model, HttpSession session) {
+		LOGGER.info("sesion usuario: {}", session.getAttribute("idUsuario"));
+		model.addAttribute("productos", productoService.findAll());
+		model.addAttribute("sesion", session.getAttribute("idUsuario"));
+		return "usuario/home";
 	}
 
 	// metodo que carga el producto del usuario con el id
-	@GetMapping("/{id}")
-	public ResponseEntity<?> productoHome(@PathVariable Integer id) {
+	@GetMapping("productoHome/{id}")
+	public String productoHome(@PathVariable Integer id, Model model, HttpSession session) {
 		LOGGER.info("ID producto enviado como parametro {}", id);
-		Optional<Productos> producto = productosService.get(id);
-		return producto.map(ResponseEntity::ok).orElseGet(()-> ResponseEntity.notFound().build());
+		// variable de clase producto
+		Productos p = new Productos();
+		// objeto de tipo optional
+		Optional<Productos> op = productoService.get(id);
+		p = op.get();
+		// enviar a la vista con el model los detalles del producto con el id
+		model.addAttribute("producto", p);
+		model.addAttribute("sesion", session.getAttribute("idUsuario"));
+		return "usuario/productoHome";
 	}
 
 	// metodo para enviar del boton del producto home al carrito
 	@PostMapping("/cart")
-	public String addCar(@RequestParam Integer id, @RequestParam Double cantidad, Model model) {
+	public String addCar(@RequestParam Integer id, @RequestParam Double cantidad, Model model, HttpSession session) {
 		DetalleOrden detaorden = new DetalleOrden();
 		Productos p = new Productos();
 		// variable que siempre que este en el metodo inicialida en cero despues de cada
 		// coma
 		double sumaTotal = 0;
 
-		Optional<Productos> op = productosService.get(id);
+		Optional<Productos> op = productoService.get(id);
 		LOGGER.info("Producto añadido: {}", op.get());
 		LOGGER.info("Cantidad añadida: {}", cantidad);
 
@@ -105,12 +116,14 @@ public class usuarioController {
 		orden.setTotal(sumaTotal);
 		model.addAttribute("cart", detalles);
 		model.addAttribute("orden", orden);
-		return "tiendaEcommerce/carrito";
+		model.addAttribute("sesion", session.getAttribute("idUsuario"));
+
+		return "usuario/carrito";
 	}
 
 	// metodo para quitar productos del carrito
 	@GetMapping("/delete/cart/{id}")
-	public String deleteProductoCart(@PathVariable Integer id, Model model) {
+	public String deleteProductoCart(@PathVariable Integer id, Model model, HttpSession session) {
 		// lista nueva de productos
 		List<DetalleOrden> ordenesNuevas = new ArrayList<DetalleOrden>();
 		// quitar objeto de la lista de detalleOrden
@@ -129,35 +142,41 @@ public class usuarioController {
 		orden.setTotal(sumaTotal);
 		model.addAttribute("cart", detalles);
 		model.addAttribute("orden", orden);
-		return "tiendaEcommerce/carrito";
+
+		model.addAttribute("sesion", session.getAttribute("idUsuario"));
+		return "usuario/carrito";
 	}
 
 	// metodo para redirigir al carrito sun productos
 	@GetMapping("/getCart")
-	public String getCart(Model model) {
+	public String getCart(Model model, HttpSession session) {
 		model.addAttribute("cart", detalles);
 		model.addAttribute("orden", orden);
-		return "/tiendaEcommerce/carrito";
+
+		// sesion faltante
+		model.addAttribute("sesion", session.getAttribute("idUsuario"));
+		return "/usuario/carrito";
 	}
 
 	// metodo para pasar a la vista del resumen de la orden
 	@GetMapping("/order")
-	public String order(Model model) {
-		Usuario u = usuarioService.findById(1).get();
+	public String order(Model model, HttpSession session) {
+		Usuario u = usuarioService.findById(Integer.parseInt(session.getAttribute("idUsuario").toString())).get();
 		model.addAttribute("cart", detalles);
 		model.addAttribute("orden", orden);
 		model.addAttribute("usuario", u);
-		return "tiendaEcommerce/resumenorden";
+		model.addAttribute("sesion", session.getAttribute("idUsuario"));
+		return "usuario/resumenorden";
 	}
 
 	@GetMapping("/saveOrder")
-	public String saveOrder() {
+	public String saveOrder(HttpSession session) {
 		// guardar orden
 		Date fechacreacion = new Date();
 		orden.setFechacreacion(fechacreacion);
 		orden.setNumero(ordenService.generarNumeroOrden());
 		// usuario que se refenrencia en esa compra previamente logeado
-		Usuario u = usuarioService.findById(1).get();
+		Usuario u = usuarioService.findById(Integer.parseInt(session.getAttribute("idUsuario").toString())).get();
 		orden.setUsuario(u);
 		ordenService.save(orden);
 		// guardar detalles de la orden
@@ -170,5 +189,17 @@ public class usuarioController {
 		detalles.clear();
 		return "redirect:/";
 	}
+
+	// metodo post para biscar productos en lavista de home usuario
+	@PostMapping("/search")
+	public String searchProducto(@RequestParam String nombre, Model model) {
+		LOGGER.info("nombre del producto: {}", nombre);
+		List<Productos> productos = productoService.findAll().stream()
+				.filter(p -> p.getNombre().toUpperCase().contains(nombre.toUpperCase())).collect(Collectors.toList());
+		model.addAttribute("productos", productos);
+		return "usuario/home";
+	}
+
+	//
 
 }

@@ -9,6 +9,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -47,8 +50,9 @@ public class RegistroVehiculoController {
 	}
 
 	@PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-	public ResponseEntity<?> createRegistroVehiculo(@RequestPart("registroVehiculos") String registroVehiculoJson,
-			@RequestPart("img") MultipartFile file // Recibe un archivo de imagen
+	public ResponseEntity<?> createRegistroVehiculo(@RequestPart("Vehiculo") String registroVehiculoJson,
+			@RequestPart("img") MultipartFile file, @AuthenticationPrincipal UserDetails userDetails// Recibe un archivo
+																									// de imagen
 	) throws IOException {
 
 		// Se usa ObjectMapper para convertir el JSON recibido en un objeto de tipo
@@ -59,9 +63,10 @@ public class RegistroVehiculoController {
 		// Registrar en logs la información del producto antes de guardarlo
 		LOGGER.info("Guardando producto en la DB: {}", registroVehiculo);
 
-		// Se crea un usuario por defecto con ID 1 y se asigna al producto
-		Usuario u = new Usuario(1, "", "", "", "", "", "", "");
-		registroVehiculo.setUsuario(u);
+		// Obtener el usuario autenticado desde UserDetails (proveniente del token JWT)
+		Usuario usuarioAutenticado = usuarioService.findByEmail(userDetails.getUsername())
+				.orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado"));
+		registroVehiculo.setUsuario(usuarioAutenticado);
 
 		// Si el producto es nuevo (no tiene ID), se guarda la imagen
 		if (registroVehiculo.getId() == null) {
@@ -83,7 +88,7 @@ public class RegistroVehiculoController {
 	public ResponseEntity<?> updateRegistroVehiculo(@PathVariable Integer id, // Recibe el ID del producto a actualizar
 																				// desde la
 			// URL
-			@RequestPart("productos") String registroVehiculoJson, // Recibe los datos del producto en formato JSON como
+			@RequestPart("Vehiculo") String registroVehiculoJson, // Recibe los datos del producto en formato JSON como
 																	// String
 			@RequestPart(value = "img", required = false) MultipartFile file // La imagen es opcional
 	) throws IOException {

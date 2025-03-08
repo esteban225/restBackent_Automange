@@ -33,7 +33,7 @@ import com.gestion.automange.model.RegistroVehiculo;
 import com.gestion.automange.model.Usuario;
 
 @RestController
-@RequestMapping("/registroMante")
+@RequestMapping("/api/registroMante")
 @CrossOrigin(origins = "http://localhost:4200/")
 public class RegistroMantenimientoController {
 
@@ -62,7 +62,7 @@ public class RegistroMantenimientoController {
 	}
 
 	@PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-	public ResponseEntity<?> createRegistroMante(@RequestPart("registroMante") String registroManteJson, // Recibe un JSON como
+	public ResponseEntity<?> createRegistroMante(@RequestPart("Mantenimiento") String registroManteJson, // Recibe un JSON como
 																							// String
 			@RequestPart("img") MultipartFile file // Recibe un archivo de imagen
 	) throws IOException {
