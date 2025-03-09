@@ -1,6 +1,8 @@
 package com.gestion.automange.controller;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 import org.slf4j.Logger;
@@ -12,15 +14,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestPart;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
 import org.springframework.web.multipart.MultipartFile;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -29,7 +24,6 @@ import com.gestion.automange.model.Usuario;
 import com.gestion.automange.service.IProductosService;
 import com.gestion.automange.service.IUsuarioService;
 import com.gestion.automange.service.UploadFileService;
-
 
 @RestController
 @RequestMapping("/api/productos")
@@ -47,119 +41,122 @@ public class ProductoController {
 	@Autowired
 	private UploadFileService upload;
 
-	// metodo para listar todos los poductos
+	// Método para listar todos los productos
 	@GetMapping
-	public ResponseEntity<?> getAllProductos() {
-		return ResponseEntity.ok(productoService.findAll());
+	public ResponseEntity<Map<String, Object>> getAllProductos() {
+		Map<String, Object> response = new HashMap<>();
+		response.put("status", "success");
+		response.put("code", 200);
+		response.put("message", "Lista de productos obtenida correctamente.");
+		response.put("productos", productoService.findAll());
+
+		return ResponseEntity.ok(response);
 	}
 
-	// metodo para listar por id los poductos
+	// Método para obtener un producto por ID
 	@GetMapping("/{id}")
-	public ResponseEntity<?> getProductoById(@PathVariable Integer id) {
+	public ResponseEntity<Map<String, Object>> getProductoById(@PathVariable Integer id) {
 		Optional<Productos> producto = productoService.get(id);
-		return producto.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+
+		if (producto.isPresent()) {
+			Map<String, Object> response = new HashMap<>();
+			response.put("status", "success");
+			response.put("code", 200);
+			response.put("message", "Producto encontrado.");
+			response.put("producto", producto.get());
+
+			return ResponseEntity.ok(response);
+		} else {
+			return ResponseEntity.status(HttpStatus.NOT_FOUND)
+					.body(Map.of("status", "error", "code", 404, "message", "Producto no encontrado."));
+		}
 	}
 
+	// Método para crear un producto
 	@PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-	public ResponseEntity<?> createProducto(@RequestPart("productos") String productosJson, // Recibe un JSON como
-																							// String
-			@RequestPart("img") MultipartFile file, // Recibe un archivo de imagen
-			@AuthenticationPrincipal UserDetails userDetails // Usuario autenticado desde JWT
-	) throws IOException {
+	public ResponseEntity<Map<String, Object>> createProducto(@RequestPart("productos") String productosJson,
+			@RequestPart("img") MultipartFile file, @AuthenticationPrincipal UserDetails userDetails)
+			throws IOException {
 
 		if (userDetails == null) {
-		    throw new RuntimeException("El usuario no está autenticado");
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+					.body(Map.of("status", "error", "code", 401, "message", "El usuario no está autenticado."));
 		}
-		// Convertir el JSON recibido en un objeto de tipo Productos
+
 		ObjectMapper objectMapper = new ObjectMapper();
 		Productos productos = objectMapper.readValue(productosJson, Productos.class);
-
-		// Registrar en logs la información del producto antes de guardarlo
 		LOGGER.info("Guardando producto en la DB: {}", productos);
 
-		// Obtener el usuario autenticado desde UserDetails (proveniente del token JWT)
 		Usuario usuarioAutenticado = usuarioService.findByEmail(userDetails.getUsername())
 				.orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado"));
 		productos.setUsuario(usuarioAutenticado);
 
-		// Si el producto es nuevo (no tiene ID), procesar y guardar la imagen
 		if (productos.getId() == null) {
-			// Guardar la imagen en el servidor y obtener el nombre del archivo guardado
 			String nombreImagen = upload.saveImages(file, productos.getNombre());
-
-			// Asignar el nombre de la imagen al producto
 			productos.setImagen(nombreImagen);
 		}
 
-		// Guardar el producto en la base de datos a través del servicio
 		productoService.save(productos);
 
-		// Retornar la respuesta con código 201 (CREATED) y el producto guardado
-		return ResponseEntity.status(HttpStatus.CREATED).body(productos);
+		return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("status", "success", "code", 201, "message",
+				"Producto creado exitosamente.", "producto", productos));
 	}
 
-	// metodo para actualizar los poductos
+	// Método para actualizar un producto
 	@PutMapping("/{id}")
-	public ResponseEntity<?> updateProducto(@PathVariable Integer id, // Recibe el ID del producto a actualizar desde la
-																		// URL
-			@RequestPart("productos") String productosJson, // Recibe los datos del producto en formato JSON como String
-			@RequestPart(value = "img", required = false) MultipartFile file // La imagen es opcional
-	) throws IOException {
+	public ResponseEntity<Map<String, Object>> updateProducto(@PathVariable Integer id,
+			@RequestPart("productos") String productosJson,
+			@RequestPart(value = "img", required = false) MultipartFile file) throws IOException {
 
-		// Convertir el JSON recibido en un objeto de tipo Productos
 		ObjectMapper objectMapper = new ObjectMapper();
 		Productos productos = objectMapper.readValue(productosJson, Productos.class);
-
 		LOGGER.info("Actualizando producto en la DB: {}", productos);
 
-		// Buscar el producto en la base de datos por ID
 		Optional<Productos> optional = productoService.get(id);
 
 		if (optional.isPresent()) {
-			Productos p = optional.get(); // Obtener el producto existente
+			Productos p = optional.get();
 
-			// Verificar si se ha enviado una nueva imagen o si se mantiene la actual
 			if (file == null || file.isEmpty()) {
-				productos.setImagen(p.getImagen()); // Mantener la imagen anterior
+				productos.setImagen(p.getImagen());
 			} else {
-				// Si el producto tiene una imagen diferente a la predeterminada, eliminar la
-				// anterior
 				if (p.getImagen() != null && !p.getImagen().equals("default.jpg")) {
 					upload.deleteImage(p.getImagen());
 				}
-
-				// Guardar la nueva imagen y asignarla al producto
 				String nombreImagen = upload.saveImages(file, productos.getNombre());
 				productos.setImagen(nombreImagen);
 			}
 
-			// Mantener el usuario asociado al producto anterior
 			productos.setUsuario(p.getUsuario());
-
-			// Actualizar el producto en la base de datos
 			productoService.update(productos);
 
-			// Retornar la respuesta con el producto actualizado
-			return ResponseEntity.ok(productos);
+			return ResponseEntity.ok(Map.of("status", "success", "code", 200, "message",
+					"Producto actualizado correctamente.", "producto", productos));
 		} else {
-			// Si no se encuentra el producto, retornar un 404 Not Found
-			return ResponseEntity.notFound().build();
+			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+					Map.of("status", "error", "code", 404, "message", "No se encontró el producto a actualizar."));
 		}
 	}
 
-	// metodo para eliminar los poductos
+	// Método para eliminar un producto
 	@DeleteMapping("/{id}")
-	public ResponseEntity<?> deleteProducto(@PathVariable Integer id) {
+	public ResponseEntity<Map<String, Object>> deleteProducto(@PathVariable Integer id) {
 		Optional<Productos> optional = productoService.get(id);
+
 		if (optional.isPresent()) {
 			Productos p = optional.get();
+
 			if (!p.getImagen().equals("default.jpg")) {
 				upload.deleteImage(p.getImagen());
 			}
+
 			productoService.delet(id);
-			return ResponseEntity.noContent().build();
+
+			return ResponseEntity
+					.ok(Map.of("status", "success", "code", 200, "message", "Producto eliminado correctamente."));
 		} else {
-			return ResponseEntity.notFound().build();
+			return ResponseEntity.status(HttpStatus.NOT_FOUND)
+					.body(Map.of("status", "error", "code", 404, "message", "No se encontró el producto a eliminar."));
 		}
 	}
 }

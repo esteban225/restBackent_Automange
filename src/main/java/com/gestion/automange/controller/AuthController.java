@@ -1,5 +1,11 @@
 package com.gestion.automange.controller;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -19,50 +25,83 @@ import com.gestion.automange.service.IUsuarioService;
 @CrossOrigin(origins = "*") // Permite solicitudes desde cualquier origen (ajusta según necesidad)
 public class AuthController {
 
-    private final AuthenticationManager authenticationManager;
-    private final JwtProvider jwtProvider;
-    private final UserDetailsService userDetailsService;
-    private final IUsuarioService usuarioService;
-    private final BCryptPasswordEncoder passwordEncoder;
+	private final AuthenticationManager authenticationManager;
+	private final JwtProvider jwtProvider;
+	private final UserDetailsService userDetailsService;
+	private final IUsuarioService usuarioService;
+	private final BCryptPasswordEncoder passwordEncoder;
 
-    public AuthController(AuthenticationManager authenticationManager, JwtProvider jwtProvider, 
-                          UserDetailsService userDetailsService, IUsuarioService usuarioService,
-                          BCryptPasswordEncoder passwordEncoder) {
-        this.authenticationManager = authenticationManager;
-        this.jwtProvider = jwtProvider;
-        this.userDetailsService = userDetailsService;
-        this.usuarioService = usuarioService;
-        this.passwordEncoder = passwordEncoder;
-    }
+	public AuthController(AuthenticationManager authenticationManager, JwtProvider jwtProvider,
+			UserDetailsService userDetailsService, IUsuarioService usuarioService,
+			BCryptPasswordEncoder passwordEncoder) {
+		this.authenticationManager = authenticationManager;
+		this.jwtProvider = jwtProvider;
+		this.userDetailsService = userDetailsService;
+		this.usuarioService = usuarioService;
+		this.passwordEncoder = passwordEncoder;
+	}
 
-    @PostMapping("/login")
-    public AuthResponse login(@RequestBody AuthRequest request) {
-        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
-        UserDetails userDetails = userDetailsService.loadUserByUsername(request.getEmail());
-        String token = jwtProvider.generateToken(userDetails);
-        return new AuthResponse(token);
-    }
+	@PostMapping("/login")
+	public ResponseEntity<?> login(@RequestBody AuthRequest request) {
+		try {
+			authenticationManager
+					.authenticate(new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
 
-    @PostMapping("/register")
-	public AuthResponse register(@RequestBody RegisterRequest request) {
-        // Verificar si el usuario ya existe
-        if (usuarioService.findByEmail(request.getEmail()).isPresent()) {
-            throw new RuntimeException("El correo ya está en uso.");
-        }
+			UserDetails userDetails = userDetailsService.loadUserByUsername(request.getEmail());
+			String token = jwtProvider.generateToken(userDetails);
 
-        // Crear un nuevo usuario
-        Usuario nuevoUsuario = new Usuario();
-        nuevoUsuario.setEmail(request.getEmail());
-        nuevoUsuario.setPassword(passwordEncoder.encode(request.getPassword())); // Encriptar contraseña
-        nuevoUsuario.setTipo(request.getTipo()); // Asignar rol (ej. "ADMIN" o "USER")
+			// Retorna éxito con token
+			return ResponseEntity.ok(
+					Map.of("status", "success", "code", 200, "message", "Inicio de sesión exitoso.", "token", token));
 
-        // Guardar usuario en la base de datos
-        usuarioService.save(nuevoUsuario);
+		} catch (Exception e) {
+			// Retorna error con código 401 (Unauthorized)
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("status", "error", "code", 401, "message",
+					"Credenciales incorrectas. Verifica tu correo y contraseña."));
+		}
+	}
 
-        // Generar JWT para el usuario registrado
-        UserDetails userDetails = userDetailsService.loadUserByUsername(nuevoUsuario.getEmail());
-        String token = jwtProvider.generateToken(userDetails);
+	@PostMapping("/register")
+	public ResponseEntity<Map<String, Object>> registerUser(@RequestBody RegisterRequest request) {
+		Map<String, Object> response = new HashMap<>();
 
-        return new AuthResponse(token);
-    }
+		// Validar si algún campo es nulo o vacío
+		if (request.getNombre() == null || request.getNombre().isEmpty() || request.getUsername() == null
+				|| request.getUsername().isEmpty() || request.getEmail() == null || request.getEmail().isEmpty()
+				|| request.getPassword() == null || request.getPassword().isEmpty() || request.getTelefono() == null
+				|| request.getTelefono().isEmpty() || request.getDireccion() == null || request.getDireccion().isEmpty()
+				|| request.getTipo() == null || request.getTipo().isEmpty()) {
+
+			response.put("status", "error");
+			response.put("code", 400);
+			response.put("message", "Todos los campos son obligatorios.");
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+		}
+
+		// Validar si el correo ya está registrado
+		if (usuarioService.findByEmail(request.getEmail()).isPresent()) {
+			response.put("status", "error");
+			response.put("code", 409);
+			response.put("message", "El correo ya está registrado.");
+			return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+		}
+
+		// Crear usuario
+		Usuario usuario = new Usuario();
+		usuario.setNombre(request.getNombre());
+		usuario.setUsername(request.getUsername());
+		usuario.setEmail(request.getEmail());
+		usuario.setPassword(passwordEncoder.encode(request.getPassword())); // Encriptar contraseña
+		usuario.setTelefono(request.getTelefono());
+		usuario.setDireccion(request.getDireccion());
+		usuario.setTipo(request.getTipo());
+
+		// Guardar en BD
+		usuarioService.save(usuario);
+
+		response.put("status", "success");
+		response.put("code", 201);
+		response.put("message", "Usuario registrado exitosamente.");
+		return ResponseEntity.status(HttpStatus.CREATED).body(response);
+	}
 }

@@ -21,7 +21,7 @@ public class JwtProvider {
 
     // Clave secreta (debe ser al menos 32 caracteres en base64 para 256 bits)
     private static final String SECRET_KEY = "yHuMytbBG8XTCQhd7gGgf645JSHgzWYeeQizMaMKSgIrU0QQL24OCBUaZNudljFobg/lf3JyZn6egcW2J9UZOQ==";
-    private static final long EXPIRATION_TIME = 1000 * 60 * 60 * 10; // 10 horas
+    private static final long EXPIRATION_TIME = 1000000000 * 600 * 600 * 100; // 10 horas
 
     // Convertir clave secreta en una Key segura
     private final Key key = Keys.hmacShaKeyFor(Base64.getEncoder().encode(SECRET_KEY.getBytes()));
