@@ -35,20 +35,19 @@ public class SecurityConfig {
 
 	@Bean
 	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-	    http.csrf(csrf -> csrf.disable())
-	        .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-	        .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-	        .authorizeHttpRequests(auth -> auth
-	            .requestMatchers("/api/auth/**").permitAll()  // 🔹 Rutas públicas primero
-	            .requestMatchers("/api/administrador/**").hasRole("ADMIN") 
-	            .requestMatchers("/api/productos/**").hasRole("ADMIN") 
-	            .anyRequest().authenticated()  // 🔹 Esto debe ir al final
-	        )
-	        .authenticationProvider(authenticationProvider())
-	        .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+		http.csrf(csrf -> csrf.disable()).cors(cors -> cors.configurationSource(corsConfigurationSource()))
+				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+				.authorizeHttpRequests(auth -> auth.requestMatchers("/api/auth/**").permitAll() // 🔹 Rutas públicas
+						.requestMatchers("/api/administrador/**").hasRole("ADMIN").requestMatchers("/api/productos/**")
+						.hasRole("ADMIN").requestMatchers("/api/vehiculos/**").hasRole("ADMIN")
+						.requestMatchers("/api/citas/**").hasRole("ADMIN").requestMatchers("/api/mantenimientos/**")
+						.hasRole("ADMIN").anyRequest().authenticated())
+				.authenticationProvider(authenticationProvider())
+				.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
-	    return http.build();
+		return http.build();
 	}
+
 	@Bean
 	public AuthenticationProvider authenticationProvider() {
 		DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
