@@ -1,4 +1,4 @@
-package com.gestion.automange.repository;
+ package com.gestion.automange.repository;
 
 import java.util.Optional;
 
