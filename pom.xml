@@ -85,7 +85,11 @@
 			<version>0.11.2</version>
 		</dependency>
 
-
+		<!--  Dependencia de envio de corerreos electronico -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-mail</artifactId>
+		</dependency>
 	</dependencies>
 
 

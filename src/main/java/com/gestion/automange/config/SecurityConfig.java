@@ -38,10 +38,12 @@ public class SecurityConfig {
 		http.csrf(csrf -> csrf.disable()).cors(cors -> cors.configurationSource(corsConfigurationSource()))
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.authorizeHttpRequests(auth -> auth.requestMatchers("/api/auth/**").permitAll() // 🔹 Rutas públicas
-						.requestMatchers("/api/administrador/**").hasRole("ADMIN").requestMatchers("/api/productos/**")
-						.hasRole("ADMIN").requestMatchers("/api/vehiculos/**").hasRole("ADMIN")
-						.requestMatchers("/api/citas/**").hasRole("ADMIN").requestMatchers("/api/mantenimientos/**")
-						.hasRole("ADMIN").anyRequest().authenticated())
+						.requestMatchers("/api/administrador/**").hasAuthority("ROLE_ADMIN")
+						.requestMatchers("/api/productos/**").hasAuthority("ROLE_ADMIN")
+						.requestMatchers("/api/vehiculos/**").hasAuthority("ROLE_ADMIN")
+						.requestMatchers("/api/citas/**").hasAuthority("ROLE_ADMIN")
+						.requestMatchers("/api/mantenimientos/**").hasAuthority("ROLE_ADMIN")
+						.anyRequest().authenticated())
 				.authenticationProvider(authenticationProvider())
 				.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
@@ -70,7 +72,7 @@ public class SecurityConfig {
 	@Bean
 	public CorsConfigurationSource corsConfigurationSource() {
 		CorsConfiguration configuration = new CorsConfiguration();
-		configuration.setAllowedOrigins(List.of("*")); // Ajusta los dominios permitidos
+		configuration.setAllowedOrigins(List.of("http://localhost:4200")); // Ajusta los dominios permitidos
 		configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
 		configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
 		configuration.setAllowCredentials(true);

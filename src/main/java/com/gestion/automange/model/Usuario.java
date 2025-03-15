@@ -22,6 +22,7 @@ public class Usuario {
 	private String telefono;
 	private String tipo;// rol de ususario
 	private String password;
+	 private String resetToken;
 
 	@OneToMany(mappedBy = "usuario")
 	private List<Productos> productos;
@@ -124,6 +125,14 @@ public class Usuario {
 		return "Usuario [id=" + id + ", nombre=" + nombre + ", username=" + username + ", email=" + email
 				+ ", direccion=" + direccion + ", telefono=" + telefono + ", tipo=" + tipo + ", password=" + password
 				+ "]";
+	}
+
+	public String getResetToken() {
+		return resetToken;
+	}
+
+	public void setResetToken(String resetToken) {
+		this.resetToken = resetToken;
 	}
 
 }
