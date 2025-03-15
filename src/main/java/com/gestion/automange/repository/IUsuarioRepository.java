@@ -1,4 +1,4 @@
-package com.gestion.automange.repository;
+ package com.gestion.automange.repository;
 
 import java.util.Optional;
 
@@ -10,6 +10,6 @@ import com.gestion.automange.model.Usuario;
 @Repository
 public interface IUsuarioRepository extends JpaRepository<Usuario, Integer>{
 	Optional<Usuario> findByEmail(String email);
-	
 	Optional<Usuario> findByUsername(String username);
+	 Optional<Usuario> findByResetToken(String token);
 }

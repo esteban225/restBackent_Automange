@@ -1,9 +1,11 @@
 package com.gestion.automange.controller;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -15,15 +17,17 @@ import org.springframework.web.bind.annotation.*;
 
 import com.gestion.automange.config.JwtProvider;
 import com.gestion.automange.dto.AuthRequest;
-import com.gestion.automange.dto.AuthResponse;
 import com.gestion.automange.dto.RegisterRequest;
 import com.gestion.automange.model.Usuario;
 import com.gestion.automange.service.IUsuarioService;
+import com.gestion.automange.service.PasswordResetService;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "*") // Permite solicitudes desde cualquier origen (ajusta según necesidad)
+@CrossOrigin(origins = "http://localhost:4200") // Permite solicitudes desde cualquier origen (ajusta según necesidad)
 public class AuthController {
+
+	private final Logger LOGGER = LoggerFactory.getLogger(AuthController.class);
 
 	private final AuthenticationManager authenticationManager;
 	private final JwtProvider jwtProvider;
@@ -63,14 +67,15 @@ public class AuthController {
 
 	@PostMapping("/register")
 	public ResponseEntity<Map<String, Object>> registerUser(@RequestBody RegisterRequest request) {
+
 		Map<String, Object> response = new HashMap<>();
 
 		// Validar si algún campo es nulo o vacío
 		if (request.getNombre() == null || request.getNombre().isEmpty() || request.getUsername() == null
 				|| request.getUsername().isEmpty() || request.getEmail() == null || request.getEmail().isEmpty()
 				|| request.getPassword() == null || request.getPassword().isEmpty() || request.getTelefono() == null
-				|| request.getTelefono().isEmpty() || request.getDireccion() == null || request.getDireccion().isEmpty()
-				|| request.getTipo() == null || request.getTipo().isEmpty()) {
+				|| request.getTelefono().isEmpty() || request.getDireccion() == null
+				|| request.getDireccion().isEmpty()) {
 
 			response.put("status", "error");
 			response.put("code", 400);
@@ -94,7 +99,7 @@ public class AuthController {
 		usuario.setPassword(passwordEncoder.encode(request.getPassword())); // Encriptar contraseña
 		usuario.setTelefono(request.getTelefono());
 		usuario.setDireccion(request.getDireccion());
-		usuario.setTipo(request.getTipo());
+		usuario.setTipo("USER");
 
 		// Guardar en BD
 		usuarioService.save(usuario);
@@ -104,4 +109,54 @@ public class AuthController {
 		response.put("message", "Usuario registrado exitosamente.");
 		return ResponseEntity.status(HttpStatus.CREATED).body(response);
 	}
+
+	@Autowired
+	private PasswordResetService passwordResetService;
+
+	@PostMapping("/forgot-password")
+	public ResponseEntity<Map<String, String>> forgotPassword(@RequestBody Map<String, String> request) {
+		try {
+			String email = request.get("email");
+
+			if (email == null || email.isBlank()) {
+				return ResponseEntity.badRequest().body(Map.of("error", "El email es obligatorio"));
+			}
+
+			passwordResetService.sendResetEmail(email);
+			return ResponseEntity.ok(Map.of("message", "Correo de recuperación enviado"));
+
+		} catch (RuntimeException e) {
+			return ResponseEntity.status(HttpStatus.NOT_FOUND)
+					.body(Map.of("error", "No se encontró una cuenta con ese correo"));
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+					.body(Map.of("error", "Ocurrió un error al enviar el correo"));
+		}
+	}
+
+	@PostMapping("/reset-password")
+	public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> request) {
+	    try {
+	        // Validaciones básicas
+	        String token = request.get("token");
+	        String newPassword = request.get("newPassword");
+
+	        if (token == null || token.isEmpty()) {
+	            return ResponseEntity.badRequest().body("El token es requerido.");
+	        }
+	        if (newPassword == null || newPassword.length() < 6) {
+	            return ResponseEntity.badRequest().body("La nueva contraseña debe tener al menos 6 caracteres.");
+	        }
+
+	        // Llamar al servicio para actualizar la contraseña
+	        passwordResetService.resetPassword(token, newPassword);
+
+	        return ResponseEntity.ok("Contraseña actualizada con éxito.");
+	    } catch (RuntimeException e) {
+	        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Error: " + e.getMessage());
+	    } catch (Exception e) {
+	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error interno del servidor.");
+	    }
+	}
+
 }

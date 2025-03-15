@@ -73,19 +73,20 @@ public class ProductoController {
 	}
 
 	// Método para crear un producto
-	@PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	@PostMapping(value = "/register",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	public ResponseEntity<Map<String, Object>> createProducto(@RequestPart("productos") String productosJson,
 			@RequestPart("img") MultipartFile file, @AuthenticationPrincipal UserDetails userDetails)
 			throws IOException {
-
+		
+		ObjectMapper objectMapper = new ObjectMapper();
+		Productos productos = objectMapper.readValue(productosJson, Productos.class);
+		LOGGER.info("Guardando producto en la DB: {}", productos);
 		if (userDetails == null) {
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
 					.body(Map.of("status", "error", "code", 401, "message", "El usuario no está autenticado."));
 		}
 
-		ObjectMapper objectMapper = new ObjectMapper();
-		Productos productos = objectMapper.readValue(productosJson, Productos.class);
-		LOGGER.info("Guardando producto en la DB: {}", productos);
+
 
 		Usuario usuarioAutenticado = usuarioService.findByEmail(userDetails.getUsername())
 				.orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado"));

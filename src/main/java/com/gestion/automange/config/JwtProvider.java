@@ -6,12 +6,15 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
 import java.util.Date;
+import java.util.List;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.Base64;
 
 @Component
@@ -28,8 +31,15 @@ public class JwtProvider {
 
     public String generateToken(UserDetails userDetails) {
         logger.info("Generando token para usuario: {}", userDetails.getUsername());
+
+        // Extraer roles del usuario
+        List<String> roles = userDetails.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toList());
+
         return Jwts.builder()
                 .setSubject(userDetails.getUsername())
+                .claim("roles", roles) // 🔹 Agregamos los roles al token
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
                 .signWith(key, SignatureAlgorithm.HS256)
