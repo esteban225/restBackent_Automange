@@ -1,6 +1,8 @@
 package com.gestion.automange.controller;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 import org.slf4j.Logger;
@@ -39,9 +41,16 @@ public class RegistroVehiculoController {
 	private UploadFileService upload;
 
 	@GetMapping
-	public ResponseEntity<?> getAllRegistroVehiculo() {
-		return ResponseEntity.ok(registroVehiculoService.findAll());
+	public ResponseEntity<Map<String, Object>> getAllRegistroVehiculo() {
+		Map<String, Object> response = new HashMap<>();
+		response.put("status", "success");
+		response.put("code", 200);
+		response.put("message", "Lista de vehiculos obtenida correctamente.");
+		response.put("vehiculos", registroVehiculoService.findAll());
+
+		return ResponseEntity.ok(response);
 	}
+
 
 	@GetMapping("/{id}")
 	public ResponseEntity<?> getRegistroVehiculoById(@PathVariable Integer id) {
@@ -49,7 +58,7 @@ public class RegistroVehiculoController {
 		return registroVehiculo.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
 	}
 
-	@PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	@PostMapping( value = "/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	public ResponseEntity<?> createRegistroVehiculo(@RequestPart("Vehiculo") String registroVehiculoJson,
 			@RequestPart("img") MultipartFile file, @AuthenticationPrincipal UserDetails userDetails// Recibe un archivo
 																									// de imagen
