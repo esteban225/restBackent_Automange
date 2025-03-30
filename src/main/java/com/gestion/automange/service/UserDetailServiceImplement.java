@@ -39,7 +39,7 @@ public class UserDetailServiceImplement implements UserDetailsService {
         return User.builder()
                 .username(usuario.getEmail())
                 .password(usuario.getPassword()) // Asegúrate de que esté encriptado con BCrypt
-                .authorities(new SimpleGrantedAuthority("ROLE_" + usuario.getTipo().toUpperCase())) // Prefijo "ROLE_"
+                .authorities(new SimpleGrantedAuthority("ROLE_" + usuario.getTipo("USER").toUpperCase())) // Prefijo "ROLE_"
                 .build();
     }
 

@@ -31,6 +31,8 @@ import com.gestion.automange.service.UploadFileService;
 public class ProductoController {
 
 	private final Logger LOGGER = LoggerFactory.getLogger(ProductoController.class);
+	private final String BASE_IMAGE_URL = "http://localhost:13880/images/";
+
 
 	@Autowired
 	private IProductosService productoService;
@@ -59,6 +61,7 @@ public class ProductoController {
 		Optional<Productos> producto = productoService.get(id);
 
 		if (producto.isPresent()) {
+
 			Map<String, Object> response = new HashMap<>();
 			response.put("status", "success");
 			response.put("code", 200);
@@ -94,7 +97,7 @@ public class ProductoController {
 
 		if (productos.getId() == null) {
 			String nombreImagen = upload.saveImages(file, productos.getNombre());
-			productos.setImagen(nombreImagen);
+			productos.setImagen(BASE_IMAGE_URL + nombreImagen);
 		}
 
 		productoService.save(productos);
@@ -125,7 +128,7 @@ public class ProductoController {
 					upload.deleteImage(p.getImagen());
 				}
 				String nombreImagen = upload.saveImages(file, productos.getNombre());
-				productos.setImagen(nombreImagen);
+				productos.setImagen(BASE_IMAGE_URL + nombreImagen);
 			}
 
 			productos.setUsuario(p.getUsuario());

@@ -1,5 +1,7 @@
 package com.gestion.automange.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -21,9 +23,11 @@ public class DetalleOrden {
 	private Double total;
 	
 	@ManyToOne
+	@JsonBackReference("orden-detalles")
 	private Orden orden;
 	
 	@ManyToOne
+	@JsonBackReference
 	private Productos producto;
 	
 	public DetalleOrden() {

@@ -2,6 +2,9 @@ package com.gestion.automange.model;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -20,21 +23,36 @@ public class Usuario {
 	private String email;
 	private String direccion;
 	private String telefono;
-	private String tipo;// rol de ususario
+	private String tipo;
+	private Boolean active;// rol de ususario
+	@JsonIgnore
 	private String password;
 	 private String resetToken;
 
+
 	@OneToMany(mappedBy = "usuario")
+	@JsonManagedReference("usuario-productos")
 	private List<Productos> productos;
 
 	@OneToMany(mappedBy = "usuario")
+	@JsonManagedReference("usuario-vehiculos")
 	private List<RegistroVehiculo> registroVehiculo;
 
 	@OneToMany(mappedBy = "usuario")
+	@JsonManagedReference("usuario-ordenes")
 	private List<Orden> ordenes;
 
 	@OneToMany(mappedBy = "usuario")
+	@JsonManagedReference("usuario-citas")
 	private List<Citas> citas;
+
+	public Boolean getActive() {
+		return active;
+	}
+
+	public void setActive(Boolean active) {
+		this.active = active;
+	}
 
 	// constructor sin campos
 	public Usuario() {
@@ -104,7 +122,7 @@ public class Usuario {
 		this.telefono = telefono;
 	}
 
-	public String getTipo() {
+	public String getTipo(String user) {
 		return tipo;
 	}
 

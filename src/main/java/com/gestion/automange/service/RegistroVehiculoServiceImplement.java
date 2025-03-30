@@ -3,6 +3,7 @@ package com.gestion.automange.service;
 import java.util.List;
 import java.util.Optional;
 
+import com.gestion.automange.model.RegistroMante;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -49,6 +50,11 @@ public class RegistroVehiculoServiceImplement implements IRegistroVehiculoServic
 	public void setImagen(String nombreImagen) {
 		// TODO Auto-generated method stub
 
+	}
+
+	@Override
+	public Optional<RegistroMante> findById(Integer vehiculoId) {
+		return Optional.empty();
 	}
 
 }

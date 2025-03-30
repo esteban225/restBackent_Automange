@@ -1,6 +1,7 @@
 package com.gestion.automange.controller;
 
 import java.io.IOException;
+import java.util.Map;
 import java.util.Optional;
 
 import org.slf4j.Logger;
@@ -9,46 +10,36 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestPart;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.gestion.automange.service.IRegistroManteService;
-import com.gestion.automange.service.IUsuarioService;
-import com.gestion.automange.service.UploadFileService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.gestion.automange.dto.RegistroManteDTO;
 import com.gestion.automange.model.Productos;
 import com.gestion.automange.model.RegistroMante;
 import com.gestion.automange.model.RegistroVehiculo;
-import com.gestion.automange.model.Usuario;
+import com.gestion.automange.service.IRegistroManteService;
+import com.gestion.automange.service.IRegistroVehiculoService;
+import com.gestion.automange.service.UploadFileService;
 
 @RestController
 @RequestMapping("/api/registroMante")
 @CrossOrigin(origins = "http://localhost:4200/")
 public class RegistroMantenimientoController {
 
-	private final Logger LOGGER = (Logger) LoggerFactory.getLogger(RegistroMantenimientoController.class);
+	private final Logger LOGGER = LoggerFactory.getLogger(RegistroMantenimientoController.class);
+	private final String BASE_IMAGE_URL = "http://localhost:13880/images/";
 
 	@Autowired
 	private IRegistroManteService registroManteService;
 
 	@Autowired
-	private IUsuarioService usuarioService;
+	private IRegistroVehiculoService registroVehiculoService;
 
-	// micro servicio imgs
 	@Autowired
 	private UploadFileService upload;
-	// metodo para redirigir a la vista show en el template productos
 
 	@GetMapping
 	public ResponseEntity<?> getAllRegistroMante() {
@@ -61,100 +52,103 @@ public class RegistroMantenimientoController {
 		return registroMante.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
 	}
 
-	@PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-	public ResponseEntity<?> createRegistroMante(@RequestPart("Mantenimiento") String registroManteJson, // Recibe un JSON como
-																							// String
-			@RequestPart("img") MultipartFile file // Recibe un archivo de imagen
-	) throws IOException {
+	@PostMapping(value = "/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	public ResponseEntity<?> createRegistroMante(@RequestPart("mantenimiento") String registroManteJson,
+			@RequestPart("img") MultipartFile file) throws IOException {
 
-		// Se usa ObjectMapper para convertir el JSON recibido en un objeto de tipo
-		// Productos
 		ObjectMapper objectMapper = new ObjectMapper();
-		RegistroMante registroMante = objectMapper.readValue(registroManteJson, RegistroMante.class);
+		try {
+			RegistroManteDTO registroManteDTO = objectMapper.readValue(registroManteJson, RegistroManteDTO.class);
 
-		// Registrar en logs la información del producto antes de guardarlo
-		LOGGER.info("Guardando producto en la DB: {}", registroMante);
-
-		// Se crea un usuario por defecto con ID 1 y se asigna al producto
-		RegistroVehiculo r = new RegistroVehiculo(1, registroManteJson, registroManteJson, null, null, registroManteJson, registroManteJson, null, null);
-		registroMante.setRegistroVehiculo(r);
-
-		// Si el producto es nuevo (no tiene ID), se guarda la imagen
-		if (registroMante.getId() == null) {
-			// Guardar la imagen en el servidor y obtener el nombre del archivo guardado
-			String nombreImagen = upload.saveImages(file, registroMante.getNombre());
-
-			// Asignar el nombre de la imagen al producto
-			registroMante.setImagen(nombreImagen);
-		}
-
-		// Guardar el producto en la base de datos a través del servicio
-		registroManteService.save(registroMante);
-
-		// Retornar la respuesta con código 201 (CREATED) y el producto guardado
-		return ResponseEntity.status(HttpStatus.CREATED).body(registroMante);
-	}
-
-	@PutMapping("/{id}")
-	public ResponseEntity<?> updateRegistroMante(@PathVariable Integer id, // Recibe el ID del producto a actualizar desde la
-																		// URL
-			@RequestPart("productos") String registroManteJson, // Recibe los datos del producto en formato JSON como String
-			@RequestPart(value = "img", required = false) MultipartFile file // La imagen es opcional
-	) throws IOException {
-
-		// Convertir el JSON recibido en un objeto de tipo Productos
-		ObjectMapper objectMapper = new ObjectMapper();
-		RegistroMante registroMante = objectMapper.readValue(registroManteJson, RegistroMante.class);
-
-		LOGGER.info("Actualizando producto en la DB: {}", registroMante);
-
-		// Buscar el producto en la base de datos por ID
-		Optional<RegistroMante> optional = registroManteService.get(id);
-
-		if (optional.isPresent()) {
-			RegistroMante p = optional.get(); // Obtener el producto existente
-
-			// Verificar si se ha enviado una nueva imagen o si se mantiene la actual
-			if (file == null || file.isEmpty()) {
-				registroMante.setImagen(p.getImagen()); // Mantener la imagen anterior
-			} else {
-				// Si el producto tiene una imagen diferente a la predeterminada, eliminar la
-				// anterior
-				if (p.getImagen() != null && !p.getImagen().equals("default.jpg")) {
-					upload.deleteImage(p.getImagen());
-				}
-
-				// Guardar la nueva imagen y asignarla al producto
-				String nombreImagen = upload.saveImages(file, registroMante.getNombre());
-				registroMante.setImagen(nombreImagen);
+			// Validar campos obligatorios
+			if (registroManteDTO.getNombre() == null || file.isEmpty()) {
+				return ResponseEntity.badRequest().body("Nombre e imagen son obligatorios");
 			}
 
-			// Mantener el usuario asociado al producto anterior
-			registroMante.setRegistroVehiculo(p.getRegistroVehiculo());
+			Optional<RegistroVehiculo> vehiculoOpt = registroVehiculoService.get(registroManteDTO.getVehiculoId());
+			if (!vehiculoOpt.isPresent()) {
+				return ResponseEntity.badRequest().body("Vehículo no encontrado");
+			}
 
-			// Actualizar el producto en la base de datos
-			registroManteService.update(registroMante);
+			RegistroMante registroMante = new RegistroMante();
+			registroMante.setFechaMante(registroManteDTO.getFechaMante());
+			registroMante.setNombre(registroManteDTO.getNombre());
+			registroMante.setCaracteristrica(registroManteDTO.getCaracteristica()); // Corregir posible typo
+			registroMante.setPrecio(registroManteDTO.getPrecio());
+			registroMante.setRegistroVehiculo(vehiculoOpt.get());
 
-			// Retornar la respuesta con el producto actualizado
-			return ResponseEntity.ok(registroMante);
-		} else {
-			// Si no se encuentra el producto, retornar un 404 Not Found
-			return ResponseEntity.notFound().build();
+			String nombreImagen = upload.saveImages(file, registroMante.getNombre());
+			registroMante.setImagen(BASE_IMAGE_URL + nombreImagen);
+
+			registroMante = registroManteService.save(registroMante);
+			return ResponseEntity.status(HttpStatus.CREATED).body(registroMante);
+
+		} catch (JsonProcessingException e) {
+			return ResponseEntity.badRequest().body("Formato JSON inválido");
+		}
+	}
+
+	// Método para actualizar un producto
+	@PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	public ResponseEntity<?> updateRegistroMante(@PathVariable Integer id,
+			@RequestPart("mantenimiento") String mantenimientoJson,
+			@RequestPart(value = "img", required = false) MultipartFile file) throws IOException {
+
+		ObjectMapper objectMapper = new ObjectMapper();
+		try {
+			RegistroManteDTO dto = objectMapper.readValue(mantenimientoJson, RegistroManteDTO.class);
+			Optional<RegistroMante> optional = registroManteService.get(id);
+
+			if (!optional.isPresent()) {
+				return ResponseEntity.status(HttpStatus.NOT_FOUND)
+						.body(Map.of("status", "error", "message", "Registro no encontrado"));
+			}
+
+			RegistroMante existing = optional.get();
+
+			// Actualizar campos permitidos desde el DTO
+			existing.setFechaMante(dto.getFechaMante());
+			existing.setNombre(dto.getNombre());
+			existing.setCaracteristrica(dto.getCaracteristica());
+			existing.setPrecio(dto.getPrecio());
+
+			// Validar y actualizar vehículo si es necesario
+			if (dto.getVehiculoId() != null) {
+				Optional<RegistroVehiculo> vehiculoOpt = registroVehiculoService.get(dto.getVehiculoId());
+				if (!vehiculoOpt.isPresent()) {
+					return ResponseEntity.badRequest().body("Vehículo no encontrado");
+				}
+				existing.setRegistroVehiculo(vehiculoOpt.get());
+			}
+
+			// Manejo de imagen
+			if (file != null && !file.isEmpty()) {
+				if (existing.getImagen() != null && !existing.getImagen().equals("default.jpg")) {
+					upload.deleteImage(existing.getImagen());
+				}
+				String nombreImagen = upload.saveImages(file, existing.getNombre());
+				existing.setImagen(BASE_IMAGE_URL + nombreImagen);
+			}
+
+			registroManteService.save(existing);
+			return ResponseEntity.ok(Map.of("status", "success", "data", existing));
+
+		} catch (JsonProcessingException e) {
+			return ResponseEntity.badRequest().body("JSON inválido");
 		}
 	}
 
 	@DeleteMapping("/{id}")
 	public ResponseEntity<?> deleteRegistroMante(@PathVariable Integer id) {
 		Optional<RegistroMante> optional = registroManteService.get(id);
-		if (optional.isPresent()) {
-			RegistroMante p = optional.get();
-			if (!p.getImagen().equals("default.jpg")) {
-				upload.deleteImage(p.getImagen());
-			}
-			registroManteService.delet(id);
-			return ResponseEntity.noContent().build();
-		} else {
+		if (!optional.isPresent()) {
 			return ResponseEntity.notFound().build();
 		}
+		RegistroMante registroMante = optional.get();
+		if (!registroMante.getImagen().equals("default.jpg")) {
+			upload.deleteImage(registroMante.getImagen());
+		}
+		registroManteService.delet(id);
+		return ResponseEntity.noContent().build();
 	}
 }

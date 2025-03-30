@@ -2,6 +2,9 @@ package com.gestion.automange.model;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -26,13 +29,21 @@ public class RegistroVehiculo {
 	private String imagen;
 
 	@ManyToOne
+	@JsonBackReference("usuario-vehiculos")
 	private Usuario usuario;
 
+	
 	@OneToMany(mappedBy = "registroVehiculo")
+	@JsonManagedReference("vehiculo-mantenimiento")
 	private List<RegistroMante> registroMante;
 
 	@OneToMany(mappedBy = "registroVehiculo")
+	@JsonManagedReference("vehiculo-citas")
 	private List<Citas> citas;
+	
+	
+	
+	
 	public RegistroVehiculo() {
 
 	}

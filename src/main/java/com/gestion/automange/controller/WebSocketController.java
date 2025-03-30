@@ -44,7 +44,7 @@ public class WebSocketController {
             }
 
         } catch (Exception e) {
-            logger.error("❌ Error en WebSocket: ", e);
+           logger.error("❌ Error en WebSocket: ", e);
         }
     }
 }

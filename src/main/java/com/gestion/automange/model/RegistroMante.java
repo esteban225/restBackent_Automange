@@ -1,5 +1,7 @@
 package com.gestion.automange.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -21,6 +23,7 @@ public class RegistroMante {
 	private Integer precio;
 
 	@ManyToOne
+	@JsonBackReference("vehiculo-mantenimiento")
 	private RegistroVehiculo registroVehiculo;
 
 
@@ -106,5 +109,7 @@ public class RegistroMante {
 		return "RegistroMante [id=" + id + ", fechaMante=" + fechaMante + ", nombre=" + nombre + ", caracteristrica="
 				+ caracteristrica + ", imagen=" + imagen + ", precio=" + precio + "]";
 	}
+
+
 	
 }

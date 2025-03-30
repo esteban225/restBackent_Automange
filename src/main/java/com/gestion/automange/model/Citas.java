@@ -2,6 +2,8 @@ package com.gestion.automange.model;
 
 import java.util.Date;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -21,9 +23,11 @@ public class Citas {
 	private String caracteristicas;
 
 	@ManyToOne
+	@JsonBackReference("usuario-citas")
 	private Usuario usuario;
 	
 	@ManyToOne
+	@JsonBackReference("vehiculo-citas")
 	public RegistroVehiculo registroVehiculo;
 
 

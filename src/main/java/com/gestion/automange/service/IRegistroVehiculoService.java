@@ -3,6 +3,7 @@ package com.gestion.automange.service;
 import java.util.List;
 import java.util.Optional;
 
+import com.gestion.automange.model.RegistroMante;
 import com.gestion.automange.model.RegistroVehiculo;
 
 public interface IRegistroVehiculoService {
@@ -18,5 +19,7 @@ public interface IRegistroVehiculoService {
 	List<RegistroVehiculo> findAll();
 
 	public void setImagen(String nombreImagen);
+
+	public Optional<RegistroMante> findById(Integer vehiculoId);
 
 }

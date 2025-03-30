@@ -3,9 +3,6 @@ package com.gestion.automange.service;
 import java.util.List;
 import java.util.Optional;
 
-import org.springframework.security.core.userdetails.UserDetails;
-
-import com.gestion.automange.model.Productos;
 import com.gestion.automange.model.Usuario;
 
 public interface IUsuarioService {
@@ -18,7 +15,7 @@ public interface IUsuarioService {
 
 	public void delete(Integer id);
 
-	Optional<Usuario> findById(Integer id);
+	Optional<Usuario> findById(Long id);
 
 	Optional<Usuario> findByEmail(String email);
 

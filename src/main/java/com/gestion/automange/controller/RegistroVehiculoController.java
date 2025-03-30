@@ -21,6 +21,7 @@ import com.gestion.automange.service.IRegistroVehiculoService;
 import com.gestion.automange.service.IUsuarioService;
 import com.gestion.automange.service.UploadFileService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.gestion.automange.model.Productos;
 import com.gestion.automange.model.RegistroVehiculo;
 import com.gestion.automange.model.Usuario;
 
@@ -30,7 +31,10 @@ import com.gestion.automange.model.Usuario;
 public class RegistroVehiculoController {
 
 	private final Logger LOGGER = LoggerFactory.getLogger(RegistroVehiculoController.class);
+	private final String BASE_IMAGE_URL = "http://localhost:13880/images/";
 
+	
+	
 	@Autowired
 	private IUsuarioService usuarioService;
 
@@ -53,13 +57,25 @@ public class RegistroVehiculoController {
 
 
 	@GetMapping("/{id}")
-	public ResponseEntity<?> getRegistroVehiculoById(@PathVariable Integer id) {
-		Optional<RegistroVehiculo> registroVehiculo = registroVehiculoService.get(id);
-		return registroVehiculo.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+	public ResponseEntity<Map<String, Object>> getProductoById(@PathVariable Integer id) {
+		Optional<RegistroVehiculo> vehiculo = registroVehiculoService.get(id);
+
+		if (vehiculo.isPresent()) {
+			Map<String, Object> response = new HashMap<>();
+			response.put("status", "success");
+			response.put("code", 200);
+			response.put("message", "vehiculo encontrado.");
+			response.put("vehiculo", vehiculo.get());
+
+			return ResponseEntity.ok(response);
+		} else {
+			return ResponseEntity.status(HttpStatus.NOT_FOUND)
+					.body(Map.of("status", "error", "code", 404, "message", "Producto no encontrado."));
+		}
 	}
 
 	@PostMapping( value = "/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-	public ResponseEntity<?> createRegistroVehiculo(@RequestPart("Vehiculo") String registroVehiculoJson,
+	public ResponseEntity<?> createRegistroVehiculo(@RequestPart("vehiculo") String registroVehiculoJson,
 			@RequestPart("img") MultipartFile file, @AuthenticationPrincipal UserDetails userDetails// Recibe un archivo
 																									// de imagen
 	) throws IOException {
@@ -83,7 +99,7 @@ public class RegistroVehiculoController {
 			String nombreImagen = upload.saveImages(file, registroVehiculo.getNombre());
 
 			// Asignar el nombre de la imagen al producto
-			registroVehiculo.setImagen(nombreImagen);
+			registroVehiculo.setImagen(BASE_IMAGE_URL + nombreImagen);
 		}
 
 		// Guardar el producto en la base de datos a través del servicio
@@ -97,7 +113,7 @@ public class RegistroVehiculoController {
 	public ResponseEntity<?> updateRegistroVehiculo(@PathVariable Integer id, // Recibe el ID del producto a actualizar
 																				// desde la
 			// URL
-			@RequestPart("Vehiculo") String registroVehiculoJson, // Recibe los datos del producto en formato JSON como
+			@RequestPart("vehiculo") String registroVehiculoJson, // Recibe los datos del producto en formato JSON como
 																	// String
 			@RequestPart(value = "img", required = false) MultipartFile file // La imagen es opcional
 	) throws IOException {
@@ -126,7 +142,7 @@ public class RegistroVehiculoController {
 
 				// Guardar la nueva imagen y asignarla al producto
 				String nombreImagen = upload.saveImages(file, registroVehiculo.getNombre());
-				registroVehiculo.setImagen(nombreImagen);
+				registroVehiculo.setImagen(BASE_IMAGE_URL + nombreImagen);
 			}
 
 			// Mantener el usuario asociado al producto anterior

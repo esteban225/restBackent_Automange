@@ -1,5 +1,7 @@
 package com.gestion.automange.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -20,6 +22,7 @@ public class Productos {
 	private Integer cantidad;
 	
 	@ManyToOne
+	@JsonBackReference("usuario-productos")
 	private Usuario usuario;
 	
 	public Productos() {

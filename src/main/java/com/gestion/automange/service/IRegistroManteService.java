@@ -15,5 +15,7 @@ public RegistroMante save(RegistroMante registroMante);
 	public void delet(Integer id);
 	
 	public List<RegistroMante> findAll();
+	
+
 }
 

@@ -40,7 +40,7 @@ public class UsuarioServiceImplement implements IUsuarioService {
 	}
 
 	@Override
-	public Optional<Usuario> findById(Integer id) {
+	public Optional<Usuario> findById(Long id) {
 		// TODO Auto-generated method stub
 		return usuarioRepository.findById(id);
 	}

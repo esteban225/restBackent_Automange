@@ -12,4 +12,6 @@ public interface IUsuarioRepository extends JpaRepository<Usuario, Integer>{
 	Optional<Usuario> findByEmail(String email);
 	Optional<Usuario> findByUsername(String username);
 	 Optional<Usuario> findByResetToken(String token);
+
+    Optional<Usuario> findById(Long id);
 }

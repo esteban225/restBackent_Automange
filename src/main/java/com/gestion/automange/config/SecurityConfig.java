@@ -33,21 +33,22 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf.disable())
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**").permitAll()  // Rutas públicas
-                .requestMatchers("/ws/**").permitAll()       // Permitir WebSockets
-                .requestMatchers("/api/administrador/**").hasAuthority("ROLE_ADMIN")
-                .requestMatchers("/api/productos/**").hasAuthority("ROLE_ADMIN")
-                .requestMatchers("/api/vehiculos/**").hasAuthority("ROLE_ADMIN")
-                .requestMatchers("/api/citas/**").hasAuthority("ROLE_ADMIN")
-                .requestMatchers("/api/mantenimientos/**").hasAuthority("ROLE_ADMIN")
-                .anyRequest().authenticated()
-            )
-            .authenticationProvider(authenticationProvider())
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .csrf(csrf -> csrf.disable())
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/**").permitAll()
+                        .requestMatchers("/ws/**").permitAll()
+                        .requestMatchers("/api/administrador/**").hasAuthority("ROLE_ADMIN")
+                        .requestMatchers("/api/productos/**").hasAuthority("ROLE_ADMIN")
+                        .requestMatchers("/api/vehiculos/**").hasAuthority("ROLE_ADMIN")
+                        .requestMatchers("/api/citas/**").hasAuthority("ROLE_ADMIN")
+                        .requestMatchers("/api/mantenimientos/**").hasAuthority("ROLE_ADMIN")
+                        .requestMatchers("/api/usuarios/**").hasAuthority("ROLE_ADMIN")
+                        .anyRequest().authenticated()
+                )
+                .authenticationProvider(authenticationProvider())
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
