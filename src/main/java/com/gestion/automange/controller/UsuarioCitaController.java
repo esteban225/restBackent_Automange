@@ -19,7 +19,6 @@ import com.gestion.automange.service.ICitasService;
 
 @RestController
 @RequestMapping("/api/cita")
-@CrossOrigin(origins = "http://localhost:4200/")
 public class UsuarioCitaController {
 
 	private final Logger LOGGER = (Logger) LoggerFactory.getLogger(UsuarioCitaController.class);

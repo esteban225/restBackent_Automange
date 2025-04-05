@@ -27,7 +27,6 @@ import com.gestion.automange.model.Usuario;
 
 @RestController
 @RequestMapping("/api/vehiculos")
-@CrossOrigin(origins = "http://localhost:4200/")
 public class RegistroVehiculoController {
 
 	private final Logger LOGGER = LoggerFactory.getLogger(RegistroVehiculoController.class);

@@ -15,107 +15,130 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import com.gestion.automange.model.Orden;
+import com.gestion.automange.model.Productos;
 import com.gestion.automange.model.Usuario;
 import com.gestion.automange.service.IOrdenService;
 import com.gestion.automange.service.IUsuarioService;
 
 @RestController
 @RequestMapping("/api/usuarios")
-@CrossOrigin(origins = "http://localhost:4200")
 public class UsuarioController {
 
-    private final Logger LOGGER = LoggerFactory.getLogger(UsuarioController.class);
-    private final IUsuarioService usuarioService;
-    private final IOrdenService ordenService;
-    private final BCryptPasswordEncoder passwordEncoder;
+	private final Logger LOGGER = LoggerFactory.getLogger(UsuarioController.class);
+	private final IUsuarioService usuarioService;
+	private final IOrdenService ordenService;
+	private final BCryptPasswordEncoder passwordEncoder;
 
-    public UsuarioController(IUsuarioService usuarioService, IOrdenService ordenService, BCryptPasswordEncoder passwordEncoder) {
-        this.usuarioService = usuarioService;
-        this.ordenService = ordenService;
-        this.passwordEncoder = passwordEncoder;
-    }
+	public UsuarioController(IUsuarioService usuarioService, IOrdenService ordenService,
+			BCryptPasswordEncoder passwordEncoder) {
+		this.usuarioService = usuarioService;
+		this.ordenService = ordenService;
+		this.passwordEncoder = passwordEncoder;
+	}
 
-    @GetMapping("/detalles")
-    public ResponseEntity<Map<String, Object>> getAllUsers() {
-        Map<String, Object> response = new HashMap<>();
-        response.put("status", "success");
-        response.put("code", 200);
-        response.put("message", "Lista de usuarios obtenida correctamente");
-        response.put("usuarios", usuarioService.findAll());
-        LOGGER.info("Usuarios obtenidos: {}", response);
-        return ResponseEntity.ok(response);
-    }
+	@GetMapping("/detalles")
+	public ResponseEntity<Map<String, Object>> getAllUsers() {
+		Map<String, Object> response = new HashMap<>();
+		response.put("status", "success");
+		response.put("code", 200);
+		response.put("message", "Lista de usuarios obtenida correctamente");
+		response.put("usuarios", usuarioService.findAll());
+		LOGGER.info("Usuarios obtenidos: {}", response);
+		return ResponseEntity.ok(response);
+	}
 
-    @PostMapping("/register")
-    public ResponseEntity<?> registerUser(@RequestBody Usuario usuario) {
-        if (usuarioService.findByEmail(usuario.getEmail()).isPresent()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("El usuario ya existe.");
-        }
+	@PostMapping("/register")
+	public ResponseEntity<?> registerUser(@RequestBody Usuario usuario) {
+		if (usuarioService.findByEmail(usuario.getEmail()).isPresent()) {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("El usuario ya existe.");
+		}
 
-        usuario.setPassword(passwordEncoder.encode(usuario.getPassword()));
-        usuario.setActive(true);
-        usuario.getTipo("USER"); // Rol por defecto
+		usuario.setPassword(passwordEncoder.encode(usuario.getPassword()));
+		usuario.setActive(true);
+		usuario.getTipo("USER"); // Rol por defecto
 
-        usuarioService.save(usuario);
-        return ResponseEntity.status(HttpStatus.CREATED).body("Usuario registrado correctamente.");
-    }
+		usuarioService.save(usuario);
+		return ResponseEntity.status(HttpStatus.CREATED).body("Usuario registrado correctamente.");
+	}
 
-    @PutMapping("/estado/{id}")
-    public ResponseEntity<?> cambiarEstadoUsuario(@PathVariable Long id, @RequestBody Map<String, Boolean> requestBody) {
-        LOGGER.info("Solicitud PUT recibida - ID: {}, Nuevo Estado: {}", id, requestBody.get("activo"));
+	@PutMapping("/estado/{id}")
+	public ResponseEntity<Map<String, String>> cambiarEstadoUsuario(@PathVariable Integer id,
+			@RequestBody Map<String, Boolean> requestBody) {
+		LOGGER.info("Solicitud PUT recibida - ID: {}, Nuevo Estado: {}", id, requestBody.get("activo"));
 
-        Optional<Usuario> usuarioOptional = usuarioService.findById(id);
-        if (usuarioOptional.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Usuario no encontrado.");
-        }
+		Optional<Usuario> usuarioOptional = usuarioService.findById(id);
+		if (usuarioOptional.isEmpty()) {
+			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Usuario no encontrado."));
+		}
 
-        Usuario usuario = usuarioOptional.get();
-        usuario.setActive(requestBody.get("activo"));
-        usuarioService.save(usuario);
-        return ResponseEntity.ok("Estado actualizado correctamente.");
-    }
+		Usuario usuario = usuarioOptional.get();
+		usuario.setActive(requestBody.get("activo"));
+		usuarioService.save(usuario);
 
+		// ✅ Retornamos JSON válido
+		return ResponseEntity.ok(Map.of("mensaje", "Estado actualizado correctamente."));
+	}
 
-    @PatchMapping("/rol/{id}")
-    public ResponseEntity<?> cambiarRolUsuario(@PathVariable Long id, @RequestParam String rol) {
-        Optional<Usuario> usuarioOptional = usuarioService.findById(id);
-        if (usuarioOptional.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Usuario no encontrado.");
-        }
+	// Método para obtener un producto por ID
+	@GetMapping("getId/{id}")
+	public ResponseEntity<Map<String, Object>> getProductoById(@PathVariable Integer id) {
+		Optional<Usuario> usuario = usuarioService.findById(id);
 
-        Usuario usuario = usuarioOptional.get();
-        usuario.setTipo(rol);
-        usuarioService.save(usuario);
-        return ResponseEntity.ok("Rol actualizado correctamente.");
-    }
+		if (usuario.isPresent()) {
 
-    @GetMapping("/compras")
-    public ResponseEntity<?> compras(@AuthenticationPrincipal UserDetails userDetails) {
-        if (userDetails == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("No autorizado");
-        }
+			Map<String, Object> response = new HashMap<>();
+			response.put("status", "success");
+			response.put("code", 200);
+			response.put("message", "usuario encontrado.");
+			response.put("usuario", usuario.get());
 
-        String email = userDetails.getUsername();
-        Usuario usuario = usuarioService.findByEmail(email).orElse(null);
+			return ResponseEntity.ok(response);
+		} else {
+			return ResponseEntity.status(HttpStatus.NOT_FOUND)
+					.body(Map.of("status", "error", "code", 404, "message", "Usuario no encontrado."));
+		}
+	}
 
-        if (usuario == null) {
-            LOGGER.warn("Usuario no encontrado para obtener compras.");
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Usuario no encontrado");
-        }
+	@PatchMapping("/rol/{id}")
+	public ResponseEntity<?> cambiarRolUsuario(@PathVariable Integer id, @RequestParam String rol) {
+		Optional<Usuario> usuarioOptional = usuarioService.findById(id);
+		if (usuarioOptional.isEmpty()) {
+			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Usuario no encontrado.");
+		}
 
-        List<Orden> compras = ordenService.findByUsuario(usuario);
-        return ResponseEntity.ok(compras);
-    }
+		Usuario usuario = usuarioOptional.get();
+		usuario.setTipo(rol);
+		usuarioService.save(usuario);
+		return ResponseEntity.ok("Rol actualizado correctamente.");
+	}
 
-    @GetMapping("/detalle/{id}")
-    public ResponseEntity<?> detalleCompra(@PathVariable Integer id) {
-        LOGGER.info("Consultando detalle de compra, orden ID: {}", id);
+	@GetMapping("/compras")
+	public ResponseEntity<?> compras(@AuthenticationPrincipal UserDetails userDetails) {
+		if (userDetails == null) {
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("No autorizado");
+		}
 
-        Optional<Orden> ordenOptional = ordenService.findById(id);
-        if (ordenOptional.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Orden no encontrada");
-        }
+		String email = userDetails.getUsername();
+		Usuario usuario = usuarioService.findByEmail(email).orElse(null);
 
-        return ResponseEntity.ok(ordenOptional.get());
-    }
+		if (usuario == null) {
+			LOGGER.warn("Usuario no encontrado para obtener compras.");
+			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Usuario no encontrado");
+		}
+
+		List<Orden> compras = ordenService.findByUsuario(usuario);
+		return ResponseEntity.ok(compras);
+	}
+
+	@GetMapping("/detalle/{id}")
+	public ResponseEntity<?> detalleCompra(@PathVariable Integer id) {
+		LOGGER.info("Consultando detalle de compra, orden ID: {}", id);
+
+		Optional<Orden> ordenOptional = ordenService.findById(id);
+		if (ordenOptional.isEmpty()) {
+			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Orden no encontrada");
+		}
+
+		return ResponseEntity.ok(ordenOptional.get());
+	}
 }

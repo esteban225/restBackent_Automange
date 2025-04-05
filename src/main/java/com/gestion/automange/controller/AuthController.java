@@ -24,7 +24,6 @@ import com.gestion.automange.service.PasswordResetService;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "http://localhost:4200") // Permite solicitudes desde cualquier origen (ajusta según necesidad)
 public class AuthController {
 
 	private final Logger LOGGER = LoggerFactory.getLogger(AuthController.class);

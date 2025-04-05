@@ -26,7 +26,6 @@ import com.gestion.automange.service.UploadFileService;
 
 @RestController
 @RequestMapping("/api/registroMante")
-@CrossOrigin(origins = "http://localhost:4200/")
 public class RegistroMantenimientoController {
 
 	private final Logger LOGGER = LoggerFactory.getLogger(RegistroMantenimientoController.class);

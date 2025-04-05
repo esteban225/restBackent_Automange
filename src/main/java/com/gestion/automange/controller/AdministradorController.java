@@ -23,7 +23,6 @@ import com.gestion.automange.service.IUsuarioService;
 
 @RestController
 @RequestMapping("/api/administrador")
-@CrossOrigin(origins = "http://localhost:4200/")
 
 public class AdministradorController {
 

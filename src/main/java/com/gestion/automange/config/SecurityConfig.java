@@ -37,7 +37,7 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/**").permitAll()
+                        .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/ws/**").permitAll()
                         .requestMatchers("/api/administrador/**").hasAuthority("ROLE_ADMIN")
                         .requestMatchers("/api/productos/**").hasAuthority("ROLE_ADMIN")
@@ -75,7 +75,16 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:4200")); // Permitir frontend Angular
+        
+        
+        
+        //configuracion de cross origin para despliege en la nuve con vercel 
+       // configuration.setAllowedOrigins(List.of("http://localhost:4200")); // Permitir frontend Angular
+        configuration.setAllowedOrigins(List.of("https://frontend-automange.vercel.app"));
+        
+        
+        
+        
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
         configuration.setExposedHeaders(List.of("Authorization")); // Permitir que el frontend lea el token
