@@ -14,22 +14,19 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gestion.automange.dto.RegistroManteDTO;
-import com.gestion.automange.model.Productos;
 import com.gestion.automange.model.RegistroMante;
 import com.gestion.automange.model.RegistroVehiculo;
+import com.gestion.automange.service.CloudinaryService;
 import com.gestion.automange.service.IRegistroManteService;
 import com.gestion.automange.service.IRegistroVehiculoService;
-import com.gestion.automange.service.UploadFileService;
 
 @RestController
 @RequestMapping("/api/registroMante")
 public class RegistroMantenimientoController {
 
 	private final Logger LOGGER = LoggerFactory.getLogger(RegistroMantenimientoController.class);
-	private final String BASE_IMAGE_URL = "http://localhost:13880/images/";
 
 	@Autowired
 	private IRegistroManteService registroManteService;
@@ -38,7 +35,7 @@ public class RegistroMantenimientoController {
 	private IRegistroVehiculoService registroVehiculoService;
 
 	@Autowired
-	private UploadFileService upload;
+	private CloudinaryService cloudinaryService;
 
 	@GetMapping
 	public ResponseEntity<?> getAllRegistroMante() {
@@ -54,12 +51,10 @@ public class RegistroMantenimientoController {
 	@PostMapping(value = "/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	public ResponseEntity<?> createRegistroMante(@RequestPart("mantenimiento") String registroManteJson,
 			@RequestPart("img") MultipartFile file) throws IOException {
-
 		ObjectMapper objectMapper = new ObjectMapper();
 		try {
 			RegistroManteDTO registroManteDTO = objectMapper.readValue(registroManteJson, RegistroManteDTO.class);
 
-			// Validar campos obligatorios
 			if (registroManteDTO.getNombre() == null || file.isEmpty()) {
 				return ResponseEntity.badRequest().body("Nombre e imagen son obligatorios");
 			}
@@ -72,12 +67,13 @@ public class RegistroMantenimientoController {
 			RegistroMante registroMante = new RegistroMante();
 			registroMante.setFechaMante(registroManteDTO.getFechaMante());
 			registroMante.setNombre(registroManteDTO.getNombre());
-			registroMante.setCaracteristrica(registroManteDTO.getCaracteristica()); // Corregir posible typo
+			registroMante.setCaracteristrica(registroManteDTO.getCaracteristica());
 			registroMante.setPrecio(registroManteDTO.getPrecio());
 			registroMante.setRegistroVehiculo(vehiculoOpt.get());
 
-			String nombreImagen = upload.saveImages(file, registroMante.getNombre());
-			registroMante.setImagen(BASE_IMAGE_URL + nombreImagen);
+			// Subir imagen a Cloudinary
+			String imageUrl = cloudinaryService.uploadImage(file, registroManteDTO.getNombre(), "mantenimientos");
+			registroMante.setImagen(imageUrl);
 
 			registroMante = registroManteService.save(registroMante);
 			return ResponseEntity.status(HttpStatus.CREATED).body(registroMante);
@@ -87,7 +83,6 @@ public class RegistroMantenimientoController {
 		}
 	}
 
-	// Método para actualizar un producto
 	@PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	public ResponseEntity<?> updateRegistroMante(@PathVariable Integer id,
 			@RequestPart("mantenimiento") String mantenimientoJson,
@@ -104,14 +99,11 @@ public class RegistroMantenimientoController {
 			}
 
 			RegistroMante existing = optional.get();
-
-			// Actualizar campos permitidos desde el DTO
 			existing.setFechaMante(dto.getFechaMante());
 			existing.setNombre(dto.getNombre());
 			existing.setCaracteristrica(dto.getCaracteristica());
 			existing.setPrecio(dto.getPrecio());
 
-			// Validar y actualizar vehículo si es necesario
 			if (dto.getVehiculoId() != null) {
 				Optional<RegistroVehiculo> vehiculoOpt = registroVehiculoService.get(dto.getVehiculoId());
 				if (!vehiculoOpt.isPresent()) {
@@ -120,13 +112,14 @@ public class RegistroMantenimientoController {
 				existing.setRegistroVehiculo(vehiculoOpt.get());
 			}
 
-			// Manejo de imagen
 			if (file != null && !file.isEmpty()) {
-				if (existing.getImagen() != null && !existing.getImagen().equals("default.jpg")) {
-					upload.deleteImage(existing.getImagen());
+				// Eliminar imagen antigua de Cloudinary (si no es default)
+				if (existing.getImagen() != null && !existing.getImagen().contains("default.jpg")) {
+					cloudinaryService.deleteImage(existing.getImagen());
 				}
-				String nombreImagen = upload.saveImages(file, existing.getNombre());
-				existing.setImagen(BASE_IMAGE_URL + nombreImagen);
+
+				String imageUrl = cloudinaryService.uploadImage(file, dto.getNombre(), "mantenimientos");
+				existing.setImagen(imageUrl);
 			}
 
 			registroManteService.save(existing);
@@ -143,10 +136,18 @@ public class RegistroMantenimientoController {
 		if (!optional.isPresent()) {
 			return ResponseEntity.notFound().build();
 		}
+
 		RegistroMante registroMante = optional.get();
-		if (!registroMante.getImagen().equals("default.jpg")) {
-			upload.deleteImage(registroMante.getImagen());
+
+		// Eliminar imagen de Cloudinary si no es la default
+		if (registroMante.getImagen() != null && !registroMante.getImagen().contains("default.jpg")) {
+			try {
+				cloudinaryService.deleteImage(registroMante.getImagen());
+			} catch (IOException e) {
+				LOGGER.error("Error al eliminar imagen de Cloudinary", e);
+			}
 		}
+
 		registroManteService.delet(id);
 		return ResponseEntity.noContent().build();
 	}
