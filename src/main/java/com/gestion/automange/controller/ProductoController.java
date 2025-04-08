@@ -15,23 +15,20 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
-
 import org.springframework.web.multipart.MultipartFile;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gestion.automange.model.Productos;
 import com.gestion.automange.model.Usuario;
+import com.gestion.automange.service.CloudinaryService;
 import com.gestion.automange.service.IProductosService;
 import com.gestion.automange.service.IUsuarioService;
-import com.gestion.automange.service.UploadFileService;
 
 @RestController
 @RequestMapping("/api/productos")
 public class ProductoController {
 
 	private final Logger LOGGER = LoggerFactory.getLogger(ProductoController.class);
-	private final String BASE_IMAGE_URL = "http://localhost:13880/images/";
-
 
 	@Autowired
 	private IProductosService productoService;
@@ -40,9 +37,8 @@ public class ProductoController {
 	private IUsuarioService usuarioService;
 
 	@Autowired
-	private UploadFileService upload;
+	private CloudinaryService cloudinaryService;
 
-	// Método para listar todos los productos
 	@GetMapping
 	public ResponseEntity<Map<String, Object>> getAllProductos() {
 		Map<String, Object> response = new HashMap<>();
@@ -50,23 +46,19 @@ public class ProductoController {
 		response.put("code", 200);
 		response.put("message", "Lista de productos obtenida correctamente.");
 		response.put("productos", productoService.findAll());
-
 		return ResponseEntity.ok(response);
 	}
 
-	// Método para obtener un producto por ID
 	@GetMapping("/{id}")
 	public ResponseEntity<Map<String, Object>> getProductoById(@PathVariable Integer id) {
 		Optional<Productos> producto = productoService.get(id);
 
 		if (producto.isPresent()) {
-
 			Map<String, Object> response = new HashMap<>();
 			response.put("status", "success");
 			response.put("code", 200);
 			response.put("message", "Producto encontrado.");
 			response.put("producto", producto.get());
-
 			return ResponseEntity.ok(response);
 		} else {
 			return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -74,29 +66,27 @@ public class ProductoController {
 		}
 	}
 
-	// Método para crear un producto
-	@PostMapping(value = "/register",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	@PostMapping(value = "/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	public ResponseEntity<Map<String, Object>> createProducto(@RequestPart("productos") String productosJson,
 			@RequestPart("img") MultipartFile file, @AuthenticationPrincipal UserDetails userDetails)
 			throws IOException {
-		
+
 		ObjectMapper objectMapper = new ObjectMapper();
 		Productos productos = objectMapper.readValue(productosJson, Productos.class);
 		LOGGER.info("Guardando producto en la DB: {}", productos);
+
 		if (userDetails == null) {
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
 					.body(Map.of("status", "error", "code", 401, "message", "El usuario no está autenticado."));
 		}
 
-
-
 		Usuario usuarioAutenticado = usuarioService.findByEmail(userDetails.getUsername())
 				.orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado"));
 		productos.setUsuario(usuarioAutenticado);
 
-		if (productos.getId() == null) {
-			String nombreImagen = upload.saveImages(file, productos.getNombre());
-			productos.setImagen(BASE_IMAGE_URL + nombreImagen);
+		if (productos.getId() == null && file != null && !file.isEmpty()) {
+			String imageUrl = cloudinaryService.uploadImage(file);
+			productos.setImagen(imageUrl);
 		}
 
 		productoService.save(productos);
@@ -105,7 +95,6 @@ public class ProductoController {
 				"Producto creado exitosamente.", "producto", productos));
 	}
 
-	// Método para actualizar un producto
 	@PutMapping("/{id}")
 	public ResponseEntity<Map<String, Object>> updateProducto(@PathVariable Integer id,
 			@RequestPart("productos") String productosJson,
@@ -123,11 +112,14 @@ public class ProductoController {
 			if (file == null || file.isEmpty()) {
 				productos.setImagen(p.getImagen());
 			} else {
-				if (p.getImagen() != null && !p.getImagen().equals("default.jpg")) {
-					upload.deleteImage(p.getImagen());
+				// Eliminar imagen anterior en Cloudinary
+				if (p.getImagen() != null && !p.getImagen().isEmpty()) {
+					String publicId = getPublicIdFromUrl(p.getImagen());
+					cloudinaryService.deleteImage(publicId);
 				}
-				String nombreImagen = upload.saveImages(file, productos.getNombre());
-				productos.setImagen(BASE_IMAGE_URL + nombreImagen);
+
+				String imageUrl = cloudinaryService.uploadImage(file);
+				productos.setImagen(imageUrl);
 			}
 
 			productos.setUsuario(p.getUsuario());
@@ -141,7 +133,6 @@ public class ProductoController {
 		}
 	}
 
-	// Método para eliminar un producto
 	@DeleteMapping("/{id}")
 	public ResponseEntity<Map<String, Object>> deleteProducto(@PathVariable Integer id) {
 		Optional<Productos> optional = productoService.get(id);
@@ -149,8 +140,13 @@ public class ProductoController {
 		if (optional.isPresent()) {
 			Productos p = optional.get();
 
-			if (!p.getImagen().equals("default.jpg")) {
-				upload.deleteImage(p.getImagen());
+			if (p.getImagen() != null && !p.getImagen().isEmpty()) {
+				String publicId = getPublicIdFromUrl(p.getImagen());
+				try {
+					cloudinaryService.deleteImage(publicId);
+				} catch (IOException e) {
+					LOGGER.error("Error al eliminar imagen de Cloudinary: {}", e.getMessage());
+				}
 			}
 
 			productoService.delet(id);
@@ -160,6 +156,19 @@ public class ProductoController {
 		} else {
 			return ResponseEntity.status(HttpStatus.NOT_FOUND)
 					.body(Map.of("status", "error", "code", 404, "message", "No se encontró el producto a eliminar."));
+		}
+	}
+
+	private String getPublicIdFromUrl(String imageUrl) {
+		// Extraer publicId desde la URL de Cloudinary
+		try {
+			String[] parts = imageUrl.split("/");
+			String filename = parts[parts.length - 1];
+			String folder = parts[parts.length - 2];
+			return folder + "/" + filename.split("\\.")[0];
+		} catch (Exception e) {
+			LOGGER.error("No se pudo obtener el publicId de la URL: {}", imageUrl);
+			return null;
 		}
 	}
 }
