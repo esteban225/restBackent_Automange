@@ -24,6 +24,8 @@ import com.gestion.automange.service.CloudinaryService;
 import com.gestion.automange.service.IRegistroVehiculoService;
 import com.gestion.automange.service.IUsuarioService;
 
+
+// holaaaaaa
 @RestController
 @RequestMapping("/api/vehiculos")
 public class RegistroVehiculoController {
