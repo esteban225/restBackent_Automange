@@ -19,6 +19,7 @@ import com.gestion.automange.config.JwtProvider;
 import com.gestion.automange.dto.AuthRequest;
 import com.gestion.automange.dto.RegisterRequest;
 import com.gestion.automange.model.Usuario;
+import com.gestion.automange.service.EmailNotificationService;
 import com.gestion.automange.service.IUsuarioService;
 import com.gestion.automange.service.PasswordResetService;
 
@@ -27,6 +28,9 @@ import com.gestion.automange.service.PasswordResetService;
 public class AuthController {
 
 	private final Logger LOGGER = LoggerFactory.getLogger(AuthController.class);
+
+	@Autowired
+	private EmailNotificationService emailNotificationService;
 
 	private final AuthenticationManager authenticationManager;
 	private final JwtProvider jwtProvider;
@@ -103,6 +107,9 @@ public class AuthController {
 		// Guardar en BD
 		usuarioService.save(usuario);
 
+		// Enviar notificación al correo
+		emailNotificationService.sendRegistrationSuccessEmail(usuario.getEmail(), usuario.getNombre());
+
 		response.put("status", "success");
 		response.put("code", 201);
 		response.put("message", "Usuario registrado exitosamente.");
@@ -135,27 +142,27 @@ public class AuthController {
 
 	@PostMapping("/reset-password")
 	public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> request) {
-	    try {
-	        // Validaciones básicas
-	        String token = request.get("token");
-	        String newPassword = request.get("newPassword");
+		try {
+			// Validaciones básicas
+			String token = request.get("token");
+			String newPassword = request.get("newPassword");
 
-	        if (token == null || token.isEmpty()) {
-	            return ResponseEntity.badRequest().body("El token es requerido.");
-	        }
-	        if (newPassword == null || newPassword.length() < 6) {
-	            return ResponseEntity.badRequest().body("La nueva contraseña debe tener al menos 6 caracteres.");
-	        }
+			if (token == null || token.isEmpty()) {
+				return ResponseEntity.badRequest().body("El token es requerido.");
+			}
+			if (newPassword == null || newPassword.length() < 6) {
+				return ResponseEntity.badRequest().body("La nueva contraseña debe tener al menos 6 caracteres.");
+			}
 
-	        // Llamar al servicio para actualizar la contraseña
-	        passwordResetService.resetPassword(token, newPassword);
+			// Llamar al servicio para actualizar la contraseña
+			passwordResetService.resetPassword(token, newPassword);
 
-	        return ResponseEntity.ok("Contraseña actualizada con éxito.");
-	    } catch (RuntimeException e) {
-	        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Error: " + e.getMessage());
-	    } catch (Exception e) {
-	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error interno del servidor.");
-	    }
+			return ResponseEntity.ok("Contraseña actualizada con éxito.");
+		} catch (RuntimeException e) {
+			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Error: " + e.getMessage());
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error interno del servidor.");
+		}
 	}
 
 }
