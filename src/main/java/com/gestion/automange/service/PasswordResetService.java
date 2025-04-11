@@ -36,7 +36,7 @@ public class PasswordResetService {
 		user.setResetToken(token);
 		usuarioRepository.save(user);
 
-		String resetUrl = "http://localhost:4200/#/reset-password?token=" + token;
+		String resetUrl = "https://frontend-automange.vercel.app/#/reset-password?token=" + token;
 		String htmlContent = getEmailTemplate(resetUrl);
 
 		// Enviar el correo con HTML
