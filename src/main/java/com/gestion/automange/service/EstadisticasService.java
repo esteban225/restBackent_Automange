@@ -3,6 +3,7 @@ package com.gestion.automange.service;
 import com.gestion.automange.model.Estadisticas;
 import com.gestion.automange.repository.EstadisticasRepository;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +21,12 @@ public class EstadisticasService {
     public EstadisticasService(JdbcTemplate jdbcTemplate, EstadisticasRepository estadisticasRepository) {
         this.jdbcTemplate = jdbcTemplate;
         this.estadisticasRepository = estadisticasRepository;
+    }
+
+    // 🕒 Ejecutar cada 5 segundos
+    @Scheduled(fixedRate = 5000)
+    public void tareaProgramadaActualizarEstadisticas() {
+        actualizarEstadisticas();
     }
 
     public void actualizarEstadisticas() {
@@ -52,24 +59,24 @@ public class EstadisticasService {
             logger.info("✅ Estadísticas actualizadas correctamente.");
 
         } catch (Exception e) {
-            logger.error("❌ Error al actualizar estadísticas: ", e);
+            logger.error("❌ Error al actualizar demo_automange_db.estadísticas: ", e);
         }
     }
 
     private int contarUsuarios() {
-        return ejecutarConsulta("SELECT COUNT(*) FROM usuarios", "usuarios");
+        return ejecutarConsulta("SELECT COUNT(*) FROM demo_automange_db.usuarios", "usuarios");
     }
 
     private int contarVehiculos() {
-        return ejecutarConsulta("SELECT COUNT(*) FROM vehiculos", "vehículos");
+        return ejecutarConsulta("SELECT COUNT(*) FROM demo_automange_db.vehiculos", "vehículos");
     }
 
     private int contarInventario() {
-        return ejecutarConsulta("SELECT COALESCE(SUM(cantidad), 0) FROM productos", "inventario");
+        return ejecutarConsulta("SELECT COALESCE(SUM(cantidad), 0) FROM demo_automange_db.productos", "inventario");
     }
 
     private int contarOrdenes() {
-        return ejecutarConsulta("SELECT COUNT(*) FROM ordenes", "órdenes");
+        return ejecutarConsulta("SELECT COUNT(*) FROM demo_automange_db.ordenes", "órdenes");
     }
 
     private int ejecutarConsulta(String sql, String entidad) {
