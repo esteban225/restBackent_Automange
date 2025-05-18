@@ -12,10 +12,17 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import com.gestion.automange.model.Orden;
-import com.gestion.automange.model.Productos;
 import com.gestion.automange.model.Usuario;
 import com.gestion.automange.service.IOrdenService;
 import com.gestion.automange.service.IUsuarioService;
@@ -55,7 +62,7 @@ public class UsuarioController {
 
 		usuario.setPassword(passwordEncoder.encode(usuario.getPassword()));
 		usuario.setActive(true);
-		usuario.getTipo("USER"); // Rol por defecto
+		usuario.getRole("USER"); // Rol por defecto
 
 		usuarioService.save(usuario);
 		return ResponseEntity.status(HttpStatus.CREATED).body("Usuario registrado correctamente.");
@@ -107,7 +114,7 @@ public class UsuarioController {
 		}
 
 		Usuario usuario = usuarioOptional.get();
-		usuario.setTipo(rol);
+		usuario.setRole(rol);
 		usuarioService.save(usuario);
 		return ResponseEntity.ok("Rol actualizado correctamente.");
 	}

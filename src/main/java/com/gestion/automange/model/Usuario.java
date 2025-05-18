@@ -23,7 +23,7 @@ public class Usuario {
 	private String email;
 	private String direccion;
 	private String telefono;
-	private String tipo;
+	private String role;
 	private Boolean active;// rol de ususario
 	@JsonIgnore
 	private String password;
@@ -62,7 +62,7 @@ public class Usuario {
 	// constructor con campos
 
 	public Usuario(Integer id, String nombre, String username, String email, String direccion, String telefono,
-			String tipo, String password) {
+			String role, String password) {
 		super();
 		this.id = id;
 		this.nombre = nombre;
@@ -70,7 +70,7 @@ public class Usuario {
 		this.email = email;
 		this.direccion = direccion;
 		this.telefono = telefono;
-		this.tipo = tipo;
+		this.role = role;
 		this.password = password;
 	}
 
@@ -122,12 +122,12 @@ public class Usuario {
 		this.telefono = telefono;
 	}
 
-	public String getTipo(String user) {
-		return tipo;
+	public String getRole(String user) {
+		return role;
 	}
 
-	public void setTipo(String tipo) {
-		this.tipo = tipo;
+	public void setRole(String role) {
+		this.role = role;
 	}
 
 	public String getPassword() {
@@ -141,7 +141,7 @@ public class Usuario {
 	@Override
 	public String toString() {
 		return "Usuario [id=" + id + ", nombre=" + nombre + ", username=" + username + ", email=" + email
-				+ ", direccion=" + direccion + ", telefono=" + telefono + ", tipo=" + tipo + ", password=" + password
+				+ ", direccion=" + direccion + ", telefono=" + telefono + ", role=" + role + ", password=" + password
 				+ "]";
 	}
 

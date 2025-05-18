@@ -1,7 +1,10 @@
 package com.gestion.automange.controller;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,11 +12,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import com.gestion.automange.config.JwtProvider;
 import com.gestion.automange.dto.AuthRequest;
@@ -21,13 +29,13 @@ import com.gestion.automange.dto.RegisterRequest;
 import com.gestion.automange.model.Usuario;
 import com.gestion.automange.service.EmailNotificationService;
 import com.gestion.automange.service.IUsuarioService;
-import com.gestion.automange.service.PasswordResetService;
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
-	private final Logger LOGGER = LoggerFactory.getLogger(AuthController.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(AuthController.class);
+	private static final Pattern EMAIL_PATTERN = Pattern.compile("[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,6}");
 
 	@Autowired
 	private EmailNotificationService emailNotificationService;
@@ -47,7 +55,7 @@ public class AuthController {
 		this.usuarioService = usuarioService;
 		this.passwordEncoder = passwordEncoder;
 	}
-
+	
 	@PostMapping("/login")
 	public ResponseEntity<?> login(@RequestBody AuthRequest request) {
 		try {
@@ -55,38 +63,36 @@ public class AuthController {
 					.authenticate(new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
 
 			UserDetails userDetails = userDetailsService.loadUserByUsername(request.getEmail());
-			String token = jwtProvider.generateToken(userDetails);
+			List<String> roles = userDetails.getAuthorities().stream().map(GrantedAuthority::getAuthority)
+					.collect(Collectors.toList());
 
-			// Retorna éxito con token
-			return ResponseEntity.ok(
-					Map.of("status", "success", "code", 200, "message", "Inicio de sesión exitoso.", "token", token));
+			String token = jwtProvider.generateToken(userDetails.getUsername(), roles);
 
+			return ResponseEntity.ok(Map.of("status", "success", "code", 200, "message", "Inicio de sesión exitoso.",
+					"token", token));
+
+		} catch (BadCredentialsException e) {
+			LOGGER.warn("Credenciales incorrectas: {}", request.getEmail());
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("status", "error", "code", 401,
+					"message", "Credenciales incorrectas. Verifica tu correo y contraseña."));
 		} catch (Exception e) {
-			// Retorna error con código 401 (Unauthorized)
-			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("status", "error", "code", 401, "message",
-					"Credenciales incorrectas. Verifica tu correo y contraseña."));
+			LOGGER.error("Error al autenticar usuario", e);
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+					.body(Map.of("status", "error", "code", 500, "message", "Error interno del servidor."));
 		}
 	}
 
 	@PostMapping("/register")
-	public ResponseEntity<Map<String, Object>> registerUser(@RequestBody RegisterRequest request) {
-
+	public ResponseEntity<?> registerUser(@RequestBody RegisterRequest request) {
 		Map<String, Object> response = new HashMap<>();
 
-		// Validar si algún campo es nulo o vacío
-		if (request.getNombre() == null || request.getNombre().isEmpty() || request.getUsername() == null
-				|| request.getUsername().isEmpty() || request.getEmail() == null || request.getEmail().isEmpty()
-				|| request.getPassword() == null || request.getPassword().isEmpty() || request.getTelefono() == null
-				|| request.getTelefono().isEmpty() || request.getDireccion() == null
-				|| request.getDireccion().isEmpty()) {
-
+		if (!validarRegistro(request)) {
 			response.put("status", "error");
 			response.put("code", 400);
-			response.put("message", "Todos los campos son obligatorios.");
+			response.put("message", "Todos los campos son obligatorios y deben tener un formato válido.");
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
 		}
 
-		// Validar si el correo ya está registrado
 		if (usuarioService.findByEmail(request.getEmail()).isPresent()) {
 			response.put("status", "error");
 			response.put("code", 409);
@@ -94,20 +100,16 @@ public class AuthController {
 			return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
 		}
 
-		// Crear usuario
 		Usuario usuario = new Usuario();
 		usuario.setNombre(request.getNombre());
 		usuario.setUsername(request.getUsername());
 		usuario.setEmail(request.getEmail());
-		usuario.setPassword(passwordEncoder.encode(request.getPassword())); // Encriptar contraseña
+		usuario.setPassword(passwordEncoder.encode(request.getPassword()));
 		usuario.setTelefono(request.getTelefono());
 		usuario.setDireccion(request.getDireccion());
-		usuario.setTipo("USER");
+		usuario.setRole("USER");
 
-		// Guardar en BD
 		usuarioService.save(usuario);
-
-		// Enviar notificación al correo
 		emailNotificationService.sendRegistrationSuccessEmail(usuario.getEmail(), usuario.getNombre());
 
 		response.put("status", "success");
@@ -116,53 +118,12 @@ public class AuthController {
 		return ResponseEntity.status(HttpStatus.CREATED).body(response);
 	}
 
-	@Autowired
-	private PasswordResetService passwordResetService;
-
-	@PostMapping("/forgot-password")
-	public ResponseEntity<Map<String, String>> forgotPassword(@RequestBody Map<String, String> request) {
-		try {
-			String email = request.get("email");
-
-			if (email == null || email.isBlank()) {
-				return ResponseEntity.badRequest().body(Map.of("error", "El email es obligatorio"));
-			}
-
-			passwordResetService.sendResetEmail(email);
-			return ResponseEntity.ok(Map.of("message", "Correo de recuperación enviado"));
-
-		} catch (RuntimeException e) {
-			return ResponseEntity.status(HttpStatus.NOT_FOUND)
-					.body(Map.of("error", "No se encontró una cuenta con ese correo"));
-		} catch (Exception e) {
-			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-					.body(Map.of("error", "Ocurrió un error al enviar el correo"));
-		}
+	private boolean validarRegistro(RegisterRequest request) {
+		return request.getNombre() != null && !request.getNombre().isEmpty() &&
+				request.getUsername() != null && !request.getUsername().isEmpty() &&
+				request.getEmail() != null && EMAIL_PATTERN.matcher(request.getEmail()).matches() &&
+				request.getPassword() != null && request.getPassword().length() >= 6 &&
+				request.getTelefono() != null && request.getTelefono().length() >= 10 &&
+				request.getDireccion() != null && !request.getDireccion().isEmpty();
 	}
-
-	@PostMapping("/reset-password")
-	public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> request) {
-		try {
-			// Validaciones básicas
-			String token = request.get("token");
-			String newPassword = request.get("newPassword");
-
-			if (token == null || token.isEmpty()) {
-				return ResponseEntity.badRequest().body("El token es requerido.");
-			}
-			if (newPassword == null || newPassword.length() < 6) {
-				return ResponseEntity.badRequest().body("La nueva contraseña debe tener al menos 6 caracteres.");
-			}
-
-			// Llamar al servicio para actualizar la contraseña
-			passwordResetService.resetPassword(token, newPassword);
-
-			return ResponseEntity.ok("Contraseña actualizada con éxito.");
-		} catch (RuntimeException e) {
-			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Error: " + e.getMessage());
-		} catch (Exception e) {
-			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error interno del servidor.");
-		}
-	}
-
 }

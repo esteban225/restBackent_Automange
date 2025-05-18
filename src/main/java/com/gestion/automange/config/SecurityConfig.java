@@ -1,7 +1,10 @@
 package com.gestion.automange.config;
 
+import java.util.List;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -17,81 +20,90 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.List;
+import com.gestion.automange.service.CustomOAuth2UserService;
 
 @Configuration
 public class SecurityConfig {
 
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    private final UserDetailsService userDetailsService;
+	private final JwtAuthenticationFilter jwtAuthenticationFilter;
+	private final UserDetailsService userDetailsService;
+	private final OAuth2SuccessHandler oAuth2SuccessHandler;
+	private final CustomOAuth2UserService customOAuth2UserService;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, UserDetailsService userDetailsService) {
-        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
-        this.userDetailsService = userDetailsService;
-    }
+	public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, UserDetailsService userDetailsService,
+			OAuth2SuccessHandler oAuth2SuccessHandler,CustomOAuth2UserService customOAuth2UserService) {
+		this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+		this.userDetailsService = userDetailsService;
+		this.oAuth2SuccessHandler = oAuth2SuccessHandler;
+		this.customOAuth2UserService = customOAuth2UserService;
+	}
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-                .csrf(csrf -> csrf.disable())
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/ws/**").permitAll()
-                        .requestMatchers("/api/administrador/**").hasAuthority("ROLE_ADMIN")
-                        .requestMatchers("/api/productos/**").hasAuthority("ROLE_ADMIN")
-                        .requestMatchers("/api/vehiculos/**").hasAuthority("ROLE_ADMIN")
-                        .requestMatchers("/api/citas/**").hasAuthority("ROLE_ADMIN")
-                        .requestMatchers("/api/mantenimientos/**").hasAuthority("ROLE_ADMIN")
-                        .requestMatchers("/api/usuarios/**").hasAuthority("ROLE_ADMIN")
-                        .anyRequest().authenticated()
-                )
-                .authenticationProvider(authenticationProvider())
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+	/**
+	 * Filtro de seguridad para OAuth2 - solo maneja rutas específicas relacionadas
+	 * con autenticación.
+	 */
+	@Bean
+	@Order(1)
+	public SecurityFilterChain oauth2SecurityFilterChain(HttpSecurity http) throws Exception {
+		http.securityMatcher("/oauth2/**", "/login/**", "/oauth2/authorization/**", "/oauth2/login-success",
+				"/oauth2/login-failure") // ✅ Limita el alcance
+				.csrf(csrf -> csrf.disable()).authorizeHttpRequests(auth -> auth.anyRequest().permitAll()).oauth2Login(
+						oauth2 -> oauth2 .userInfoEndpoint(userInfo -> userInfo
+			                    .userService(customOAuth2UserService)
+				                ).loginPage("/oauth2/authorization/google").successHandler(oAuth2SuccessHandler)
+								.failureUrl("/api/auth/oauth2/login-failure"));
 
-        return http.build();
-    }
+		return http.build();
+	}
 
-    @Bean
-    public AuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
-        authProvider.setUserDetailsService(userDetailsService);
-        authProvider.setPasswordEncoder(passwordEncoder());
-        return authProvider;
-    }
+	/**
+	 * Filtro de seguridad para API REST y WebSocket.
+	 */
+	@Bean
+	@Order(2)
+	public SecurityFilterChain apiSecurityFilterChain(HttpSecurity http) throws Exception {
+		http.securityMatcher("/api/**", "/ws/**").csrf(csrf -> csrf.disable())
+				.cors(cors -> cors.configurationSource(corsConfigurationSource()))
+				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+				.authorizeHttpRequests(auth -> auth.requestMatchers("/api/auth/**", "/ws/**").permitAll()
+						.requestMatchers("/api/administrador/**", "/api/productos/**", "/api/vehiculos/**",
+								"/api/citas/**", "/api/mantenimientos/**", "/api/usuarios/**")
+						.hasAuthority("ROLE_ADMIN").anyRequest().authenticated())
+				.authenticationProvider(authenticationProvider())
+				.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
-    @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration)
-            throws Exception {
-        return authenticationConfiguration.getAuthenticationManager();
-    }
+		return http.build();
+	}
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+	@Bean
+	public AuthenticationProvider authenticationProvider() {
+		DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
+		authProvider.setUserDetailsService(userDetailsService);
+		authProvider.setPasswordEncoder(passwordEncoder());
+		return authProvider;
+	}
 
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        
-        
-        
-        //configuracion de cross origin para despliege en la nuve con vercel 
-       // configuration.setAllowedOrigins(List.of("http://localhost:4200")); // Permitir frontend Angular
-        configuration.setAllowedOrigins(List.of("https://frontend-automange.vercel.app"));
-        
-        
-        
-        
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
-        configuration.setExposedHeaders(List.of("Authorization")); // Permitir que el frontend lea el token
-        configuration.setAllowCredentials(true);
+	@Bean
+	public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+		return config.getAuthenticationManager();
+	}
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-        return source;
-    }
+	@Bean
+	public PasswordEncoder passwordEncoder() {
+		return new BCryptPasswordEncoder();
+	}
+
+	@Bean
+	public CorsConfigurationSource corsConfigurationSource() {
+		CorsConfiguration config = new CorsConfiguration();
+		config.setAllowedOrigins(List.of("http://localhost:4200"));
+		config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+		config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+		config.setExposedHeaders(List.of("Authorization"));
+		config.setAllowCredentials(true);
+
+		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+		source.registerCorsConfiguration("/**", config);
+		return source;
+	}
 }
