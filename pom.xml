@@ -100,6 +100,12 @@
 			<version>1.37.0</version>
 		</dependency>
 
+		<!--dependencia de auth con google-->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-oauth2-client</artifactId>
+		</dependency>
+
 	</dependencies>
 
 	<build>

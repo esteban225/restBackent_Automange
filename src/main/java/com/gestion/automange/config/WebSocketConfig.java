@@ -20,8 +20,8 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 	public void registerStompEndpoints(StompEndpointRegistry registry) {
 		registry.addEndpoint("/ws")
 
-				.setAllowedOrigins("https://frontend-automange.vercel.app")
-				//.setAllowedOrigins("http://localhost:4200") // 🔹 Permite solo Angular en desarrollo
+				//.setAllowedOrigins("https://frontend-automange.vercel.app")
+				.setAllowedOrigins("http://localhost:4200") // 🔹 Permite solo Angular en desarrollo
 				.withSockJS(); // 🔹 Habilita SockJS para clientes sin WebSocket nativo
 	}
 }

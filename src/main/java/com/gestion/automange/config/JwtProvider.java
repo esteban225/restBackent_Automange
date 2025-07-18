@@ -29,21 +29,19 @@ public class JwtProvider {
     // Convertir clave secreta en una Key segura
     private final Key key = Keys.hmacShaKeyFor(Base64.getEncoder().encode(SECRET_KEY.getBytes()));
 
-    public String generateToken(UserDetails userDetails) {
-        logger.info("Generando token para usuario: {}", userDetails.getUsername());
-
-        // Extraer roles del usuario
-        List<String> roles = userDetails.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .collect(Collectors.toList());
-
+    public String generateToken(String username, List<String> roles) {
         return Jwts.builder()
-                .setSubject(userDetails.getUsername())
-                .claim("roles", roles) // 🔹 Agregamos los roles al token
+                .setSubject(username)
+                .claim("roles", roles)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
+    }
+    
+    public List<String> extractRoles(String token) {
+        Claims claims = extractAllClaims(token);
+        return claims.get("roles", List.class);
     }
 
     public String extractUsername(String token) {
@@ -77,4 +75,6 @@ public class JwtProvider {
             return false;
         }
     }
+
+	
 }

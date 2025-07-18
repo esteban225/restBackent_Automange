@@ -8,6 +8,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -16,7 +18,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import io.jsonwebtoken.Claims;
+
 import java.io.IOException;
+import java.util.List;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -32,20 +37,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-	        throws ServletException, IOException {
-	    String token = getTokenFromRequest(request);
+			throws ServletException, IOException {
+		String token = getTokenFromRequest(request);
 
-	    // Solo intenta autenticar si hay un token presente
-	    if (token != null && jwtProvider.validateToken(token)) {
-	        String username = jwtProvider.extractUsername(token);
-	        UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-	        UsernamePasswordAuthenticationToken authentication =
-	                new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-	        SecurityContextHolder.getContext().setAuthentication(authentication);
-	    }
+		if (token != null && jwtProvider.validateToken(token)) {
+			String username = jwtProvider.extractUsername(token);
+			List<String> roles = jwtProvider.extractRoles(token);
 
-	    // 🔹 Sigue con la cadena de filtros incluso si no hay token (permite accesos públicos)
-	    filterChain.doFilter(request, response);
+			List<GrantedAuthority> authorities = roles.stream().map(role -> (GrantedAuthority) () -> role).toList();
+
+			UserDetails userDetails = new org.springframework.security.core.userdetails.User(username, "", authorities);
+
+			UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userDetails,
+					null, userDetails.getAuthorities());
+
+			SecurityContextHolder.getContext().setAuthentication(authentication);
+		}
+
+		filterChain.doFilter(request, response);
 	}
 
 	private String getTokenFromRequest(HttpServletRequest request) {
